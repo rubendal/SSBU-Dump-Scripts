@@ -7,13 +7,22 @@ class NameHash40:
 
 
 HashList = []
+ArticleList = []
 
 namesFile = open('scriptNames.txt', 'r')
+HashList.append(NameHash40("game_".strip(), Hash40.CreateFromString("game_".lower().strip()))) #Share animation
 for s in namesFile:
     if(s != "\n"):
+        s = "game_" + s
         HashList.append(NameHash40(s.strip(), Hash40.CreateFromString(s.lower().strip())))
         if 'Special' in s or 'Final' in s:
                 HashList.append(NameHash40(s.replace('Special','SpecialAir').replace('Final','FinalAir').strip(), Hash40.CreateFromString(s.replace('Special','SpecialAir').replace('Final','FinalAir').lower().strip())))
+
+articlesFile = open('articles.txt','r')
+for s in articlesFile:
+    if(s != "\n"):
+        s = s.replace("WEAPON_KIND_", "")
+        ArticleList.append(NameHash40(s.strip(), Hash40.CreateFromString(s.lower().strip())))
 
 
 class Article: # Character / Weapon
@@ -25,7 +34,11 @@ class Article: # Character / Weapon
         self.scriptsHash.append(ScriptHash(hash, address))
     
     def findHashValue(self):
-        return self.article.hash40
+        find = next((x for x in ArticleList if self.article.hash == x.hash40.hash and self.article.length == x.hash40.length), None)
+        if find:
+            return find.name
+        else:
+            return self.article.hash40
 
 
 class ScriptHash:
