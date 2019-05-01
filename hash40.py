@@ -16,8 +16,11 @@ class Hash40:
 
     @staticmethod
     def CreateFromString(string):
-        return Hash40(hex(len(string)) + hex(zlib.crc32(bytearray(string, 'utf-8'))).replace('0x',''))
+        return Hash40(hex(len(string)) + Hash40.doCRC(string).replace('0x',''))
 
     @staticmethod
     def doCRC(string):
-        return hex(zlib.crc32(bytearray(string, 'utf-8')))
+        h = hex(zlib.crc32(bytearray(string, 'utf-8')))
+        if len(h.replace("0x","")) < 8:
+            h = "0x" + ('0' * (8 - len(h.replace("0x","")))) + h.replace("0x","")
+        return h
