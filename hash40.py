@@ -1,3 +1,5 @@
+import zlib
+
 class Hash40:
     def __init__(self, hash40, tag = None):
         self.hash40 = hash40
@@ -11,3 +13,11 @@ class Hash40:
     @staticmethod
     def Create(hash, length):
         return Hash40(hex(length) + hash[2:])
+
+    @staticmethod
+    def CreateFromString(string):
+        return Hash40(hex(len(string)) + hex(zlib.crc32(bytearray(string, 'utf-8'))).replace('0x',''))
+
+    @staticmethod
+    def doCRC(string):
+        return hex(zlib.crc32(bytearray(string, 'utf-8')))
