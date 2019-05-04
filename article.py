@@ -22,7 +22,7 @@ articlesFile = open('articles.txt','r')
 for s in articlesFile:
     if(s != "\n"):
         s = s.replace("WEAPON_KIND_", "")
-        ArticleList.append(NameHash40(s.strip(), Hash40.CreateFromString(s.lower().strip())))
+        ArticleList.append(NameHash40(s.lower().strip(), Hash40.CreateFromString(s.lower().strip())))
 
 
 class Article: # Character / Weapon

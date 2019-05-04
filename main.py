@@ -1,4 +1,4 @@
-import sys, getopt, os
+import sys, getopt, os, shutil
 import zlib
 import r2pipe
 from hash40 import Hash40
@@ -48,6 +48,10 @@ def dump(file):
 
             if not os.path.exists("{0}/{1}/{2}".format(output, filename, article.findHashValue())):
                 os.makedirs("{0}/{1}/{2}".format(output, filename, article.findHashValue()))
+            else:
+                #Remove previous dumped files (to prevent duplicates with code used for script filename)
+                shutil.rmtree("{0}/{1}/{2}".format(output, filename, article.findHashValue()))
+                os.makedirs("{0}/{1}/{2}".format(output, filename, article.findHashValue()))
             
             for hash in article.scriptsHash:
                 scriptStart = r2.cmd('s {0};pd 20'.format(hash.getAddress()))
@@ -62,15 +66,14 @@ def dump(file):
                         f.write(script)
                         f.close()
                     else:
-                        exists = os.path.exists("{0}/{1}/{2}/{3} (2).txt".format(output, filename, article.findHashValue(), hash.findHashValue()))
-                        if not exists:
-                            f = open("{0}/{1}/{2}/{3} (2).txt".format(output, filename, article.findHashValue(), hash.findHashValue()), "w")
-                            f.write(script)
-                            f.close()
-                        else:
-                            f = open("{0}/{1}/{2}/{3} (3).txt".format(output, filename, article.findHashValue(), hash.findHashValue()), "w")
-                            f.write(script)
-                            f.close()
+                        v = 2
+                        while exists:
+                            exists = os.path.exists("{0}/{1}/{2}/{3} ({4}).txt".format(output, filename, article.findHashValue(), hash.findHashValue(), v))
+                            if not exists:
+                                f = open("{0}/{1}/{2}/{3} ({4}).txt".format(output, filename, article.findHashValue(), hash.findHashValue(), v), "w")
+                                f.write(script)
+                                f.close()
+                            v += 1
 
     else:
         print('animcmd_game not found on file {0}'.format(file))

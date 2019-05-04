@@ -1,10 +1,16 @@
 from article import Article, ScriptHash
 from hash40 import Hash40
+import re
 
 class Pointer:
     def __init__(self, pointer, value):
         self.pointer = pointer
         self.value = value
+
+class ArticleBranch:
+    def __init__(self, article, branch = 0):
+        self.article = article
+        self.branch = branch
 
 Pointers = []
 Articles = []
@@ -13,12 +19,21 @@ CurrentArticle = None
 ArticleScripts = []
 hasIssue = False
 Issues = []
-lastArticle = True
 
 class Issue:
     def __init__(self, hash, issue):
         self.hash = hash
         self.issue = issue
+
+def AddArticle(article, branch):
+    global Articles
+    branch = int(branch, 16)
+    Articles = [x for x in Articles if x.branch != branch]
+    Articles.append(ArticleBranch(article, branch))
+
+def RemoveArticle(article):
+    global Articles
+    Articles = [x for x in Articles if x.article != article]
 
 def parse_movz(movz):
     p = movz.split(',')[0]
@@ -41,11 +56,7 @@ def parse_movk(movk):
         Pointers.append(Pointer(p, v))
 
 def parse_cmp(cmp):
-    global CurrentArticle
-    p = cmp.split(',')[1].strip()
-    pointer = next((x for x in Pointers if x.pointer == p), None)
-    if pointer:
-        Articles.append(pointer.value)
+    None
 
 def parse_adrp(adrp):
     p = adrp.split(',')[0].strip()
@@ -73,24 +84,31 @@ def parse_add(add):
             Issues.append(Issue(Hash40(hex(px2.value)), add.split(',')[2]))
         hasIssue = True
     
-    
+def parse_b(b):
+    global CurrentArticle, Hashes
+    #Set article scripts
+    if len(Hashes) > 0:
+        ArticleScripts.append(Article(Hash40(hex(CurrentArticle)), Hashes))
+    RemoveArticle(CurrentArticle)
+    Hashes = []
+            
+def parse_b_ne(b_ne):
+    global CurrentArticle
+    p = "x9"
+    pointer = next((x for x in Pointers if x.pointer == p), None)
+    if pointer:
+        AddArticle(pointer.value, b_ne)
+        CurrentArticle = pointer.value
+
+def parse_b_eq(b_eq):
+    p = "x9"
+    pointer = next((x for x in Pointers if x.pointer == p), None)
+    if pointer:
+        AddArticle(pointer.value, b_eq)
 
 def parse_bl(bl):
-    global CurrentArticle, hasIssue, Hashes
-    if "L2CFighterAnimcmd" in bl:
-        None
-        #Tried to avoid reading more stuff but it doesn't work on all characters... so putting everything on character folder lol
-        #if CurrentArticle is None:
-            #Set
-        #    CurrentArticle = Articles[len(Articles)-1]
-        #else:
-        #    #Set article scripts
-        #    ArticleScripts.append(Article(Hash40(hex(CurrentArticle)), Hashes))
-        #    Articles.remove(CurrentArticle)
-        #    Hashes = []
-        #    if len(Articles) > 0:
-        #        CurrentArticle = Articles[len(Articles) - 1]
-    elif "::Hash40" in bl:
+    global hasIssue, Hashes
+    if "::Hash40" in bl:
         if not hasIssue:
             px1 = next((x for x in Pointers if x.pointer == "x1"), None)
             px2 = next((x for x in Pointers if x.pointer == "x2"), None)
@@ -98,6 +116,20 @@ def parse_bl(bl):
                 Hashes.append(ScriptHash(Hash40(hex(px2.value)), px1.value))
         else:
             hasIssue = False
+
+def parse_b_le(b_le):
+    p = "x9"
+    pointer = next((x for x in Pointers if x.pointer == p), None)
+    if pointer:
+        AddArticle(pointer.value, b_le)
+  
+
+def parse_b_gt(b_gt):
+    p = "x9"
+    pointer = next((x for x in Pointers if x.pointer == p), None)
+    if pointer:
+        AddArticle(pointer.value, b_gt)
+
 
 class ParseAnimcmdList:
     def __init__(self, text):
@@ -111,6 +143,7 @@ class ParseAnimcmdList:
         Issues = []
         ignoreLine = True
         self.lines = []
+        self.address = []
         for l in text.split('\r'):
             if len(l) > 0:
                 if l[0] == '|':
@@ -120,9 +153,17 @@ class ParseAnimcmdList:
                         a = l.split(';')[0].strip().split("  ")
                         line = a[len(a)-1][1:]
                         self.lines.append(line)
+                        address = re.search("0x[0-9a-f]{8}", l)
+                        if address:
+                            address = address.group()
+                        self.address.append(address)
+
         
-        for line in self.lines:
+        for line, address in zip(self.lines, self.address):
             #print(line)
+            find = next((x for x in Articles if address is not None and x.branch == int(address, 16)), None)
+            if find:
+                CurrentArticle = find.article
             t = line.split(' ')
             op = t[0]
             val = ''.join(t[1:])
@@ -138,12 +179,22 @@ class ParseAnimcmdList:
                 parse_add(val)
             elif op == 'bl':
                 parse_bl(val)
-        
-        #Set last Article
-        #if CurrentArticle:
-            #ArticleScripts.append(Article(Hash40(hex(CurrentArticle)), Hashes))
+            elif op == 'b.le':
+                parse_b_le(val)
+            elif op == 'b.gt':
+                parse_b_gt(val)
+            elif op == 'b.eq':
+                parse_b_eq(val)
+            elif op == 'b.ne':
+                parse_b_ne(val)
+            elif op == 'b':
+                parse_b(val)
+            
 
-        ArticleScripts.append(Article(Hash40(hex(min(Articles))), Hashes))
+        #Check if list has hashes and CurrentArticle has a value, this happens when there is a Code XREF on Radare output
+        #Since branch doesn't close data needs to be set here if not it won't be dumped
+        if len(Hashes) > 0 and CurrentArticle is not None:
+            ArticleScripts.append(Article(Hash40(hex(CurrentArticle)), Hashes))
 
         self.Issues = Issues
         self.ArticleScripts = ArticleScripts

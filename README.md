@@ -3,6 +3,7 @@ Script to dump character game animcmd scripts programatically using r2pipe (3.0.
 
 ## Requirements
 * Python 3
+* Radare2
 * pip install r2pipe
 
 ## Usage
@@ -12,5 +13,4 @@ python main.py "directory with .elf files"
 ```
 
 ## To do
-* Add more script names
-* Fix relating scripts with character/weapon (Currently putting everything on character)
+* Add missing script and article names
