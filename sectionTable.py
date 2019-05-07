@@ -17,6 +17,7 @@ class SectionTable:
 class Section:
     def __init__(self, text):
         sep = text.split('\t')
+        self.num = int(sep[0])
         self.function = sep[6]
         self.size = int(sep[5])
         self.address = int(sep[2],16)

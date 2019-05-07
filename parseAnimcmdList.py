@@ -19,6 +19,7 @@ CurrentArticle = None
 ArticleScripts = []
 hasIssue = False
 Issues = []
+Sections = []
 
 class Issue:
     def __init__(self, hash, issue):
@@ -79,10 +80,26 @@ def parse_add(add):
         else:
             Pointers.append(Pointer(p, v))
     except:
-        px2 = next((x for x in Pointers if x.pointer == "x2"), None)
-        if px2:
-            Issues.append(Issue(Hash40(hex(px2.value)), add.split(',')[2]))
-        hasIssue = True
+        try:
+            f = add.split(':')[2].replace('_phx','').replace('_lib','').replace('_void','')
+            find = next((x for x in Sections if '::' in x.function and x.function.split(':')[2].split('(')[0] == f), None)
+            if find:
+                v = find.num
+                pointer = next((x for x in Pointers if x.pointer == p), None)
+                if pointer:
+                    pointer.value += v
+                else:
+                    Pointers.append(Pointer(p, v))
+            else:
+                px2 = next((x for x in Pointers if x.pointer == "x2"), None)
+                if px2:
+                    Issues.append(Issue(Hash40(hex(px2.value)), add.split(',')[2]))
+                hasIssue = True
+        except:
+            px2 = next((x for x in Pointers if x.pointer == "x2"), None)
+            if px2:
+                Issues.append(Issue(Hash40(hex(px2.value)), add.split(',')[2]))
+            hasIssue = True
     
 def parse_b(b):
     global CurrentArticle, Hashes
@@ -132,8 +149,8 @@ def parse_b_gt(b_gt):
 
 
 class ParseAnimcmdList:
-    def __init__(self, text):
-        global CurrentArticle, ArticleScripts, Pointers, Articles, Hashes, hasIssue, Issues
+    def __init__(self, text, sectionList = []):
+        global CurrentArticle, ArticleScripts, Pointers, Articles, Hashes, hasIssue, Issues, Sections
         Pointers = []
         Articles = []
         Hashes = []
@@ -142,6 +159,7 @@ class ParseAnimcmdList:
         hasIssue = False
         Issues = []
         ignoreLine = True
+        Sections = sectionList
         self.lines = []
         self.address = []
         for l in text.split('\r'):
