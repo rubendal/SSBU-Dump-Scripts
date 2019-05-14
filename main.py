@@ -5,11 +5,13 @@ from hash40 import Hash40
 from sectionTable import SectionTable, Section
 from parseAnimcmdList import ParseAnimcmdList
 from parseAnimcmdStart import ParseAnimcmdStart
+from scriptparser import Parser
 
 output = "output"
+testParser = False
 
 def dump(file):
-    global output
+    global output, testParser
     print("Opening file {0}".format(file))
     filename = os.path.split(os.path.splitext(file)[0])[-1]
 
@@ -59,6 +61,10 @@ def dump(file):
 
                 if scriptAddress:
                     script = r2.cmd('s {0};aF;pdf'.format(hex(scriptAddress)))
+
+                    if testParser and hash.findHashValue() == "game_Attack11":
+                        parser = Parser(r2, script, sections)
+
                     script = script.replace('\r', '')
                     exists = os.path.exists("{0}/{1}/{2}/{3}.txt".format(output, filename, article.findHashValue(), hash.findHashValue()))
                     if not exists:
@@ -80,10 +86,16 @@ def dump(file):
     
     r2.quit()
 
+def Parse(file):
+    script = open(file, 'r')
+    t = script.read()
+    t = t.replace('\n','\n\r')
+    p = Parser(None, t)
+
 def start(path, argv):
-    global output
+    global output, testParser
     try:
-      opts, args = getopt.getopt(argv,"o",["output="])
+      opts, args = getopt.getopt(argv,"o:p",["output="])
     except getopt.GetoptError:
         print('main.py path')
         print("file path: dump scripts from elf file")
@@ -92,6 +104,8 @@ def start(path, argv):
     for opt, arg in opts:
         if opt == '-o':
             output = arg
+        if opt == '-p':
+            testParser = True
 
     run = False
 
