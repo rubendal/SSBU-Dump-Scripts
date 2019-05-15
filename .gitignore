@@ -3,3 +3,4 @@ __pycache__/*
 3.0.0/*
 output/*
 *.elf
+parser/*

@@ -12,6 +12,18 @@ cfile = open('const_value_table.csv', 'r')
 for s in cfile:
     Constants.append(Constant(ci, s.split(',')[1].strip()))
     ci += 1
+
+class FunctionParams:
+    def __init__(self, function, length, params):
+        self.function = function
+        self.length = int(length)
+        self.params = params.split('|')
+
+FunctionParam = []
+fpfile = open('function_params.csv','r')
+for s in fpfile:
+    r = s.split(',')
+    FunctionParam.append(FunctionParams(r[0],r[1],r[2].strip()))
     
 class Register:
     def __init__(self, register, value):
@@ -19,20 +31,82 @@ class Register:
         self.value = value
 
 class Block:
-    def __init__(self, condition, branch = 0):
+    def __init__(self, condition, branch, address = 0):
         self.condition = condition
         self.Functions = []
         self.branch = branch
+        self.address = address
+
+    def print(self,depth):
+        s = ('\t' * depth) + 'if(' + self.condition.printCondition() +'){\n'
+        for function in self.Functions:
+            s += '{0}'.format(function.print(depth+1))
+        s+= ('\t' * depth) + '}\n'
+        return s
+
+class Loop:
+    def __init__(self, iterator, functions, branch, address = 0):
+        self.iterator = iterator
+        self.Functions = functions
+        self.branch = branch
+
+    def print(self,depth):
+        s = ('\t' * depth) + 'for(' + self.iterator.iteratorPrint() + ' Iterations){\n'
+        for function in self.Functions:
+            s += '{0}'.format(function.print(depth + 1))
+        s+= ('\t' * depth) + '}\n'
+        return s
 
 class Function:
-    def __init__(self, function, params):
+    def __init__(self, function, params, address = 0):
         self.function = function
         self.params = params
+        self.address = address
+
+    def print(self,depth):
+        s = ('\t' * depth) + '{0}( '.format(self.function)
+        fp = next((x for x in FunctionParam if x.function == self.function and x.length == len(self.params)), None)
+        index = 0
+        for param in self.params:
+            if fp:
+                s += '{0}={1}, '.format(fp.params[index], param.print(0))
+            else:
+                s += '{0}, '.format(param.print(0))
+            index += 1
+        s = s.strip(', ') + ' )\n'
+        return s
+
+    def printCondition(self):
+        s = '{0}( '.format(self.function)
+        for param in self.params:
+            s += '{0}, '.format(param.print(0))
+        s = s.strip(', ') + ' )'
+        return s
 
 class Value:
     def __init__(self, value, vtype):
         self.value = value
         self.type = vtype
+
+    def print(self,depth):
+        if self.type == 'intC':
+            return self.value.replace('"','')
+        elif self.type == 'bool':
+            if self.value == 1:
+                return 'True'
+            else:
+                return 'False'
+        elif self.type == 'function':
+            return '{0}()'.format(self.value)
+        elif self.type == 'hash40':
+            return self.value.hash40
+        elif self.type == 'int':
+            return int(self.value)
+        else:
+            return self.value
+
+    def iteratorPrint(self):
+        return str(self.value - 1)
 
 class SubScript:
     def __init__(self, r2, script, sectionList = []):
@@ -54,6 +128,8 @@ class SubScript:
         self.prevOperation = None
         self.isConstant = False
         self.CurrentValue = 0
+
+        self.CurrentAddress = 0
 
         for l in self.script.split('\r'):
             if len(l) > 0:
@@ -105,6 +181,7 @@ class SubScript:
         if h == 'w0' or h == 'wzr':
             h = '0x0'
         if p == 'v0.16b':
+            #Float
             h = 's' + h.split('.')[0].replace('v','')
             register = next((x for x in self.Registers if x.register == h), None)
             if register:
@@ -119,11 +196,37 @@ class SubScript:
                     self.Registers.append(Register(p, v))
                 self.CurrentValue = v
             except:
-                None
+                #Register
+                r = next((x for x in self.Registers if x.register == h), None)
+                register = next((x for x in self.Registers if x.register == p), None)
+                if r:
+                    if register:
+                        register.value = r.value
+                    else:
+                        self.Registers.append(Register(p, r.value))
+                    self.CurrentValue = r.value
+                else:
+                    None
+                
         
 
     def parse_cmp(self, cmp):
-        None
+        self.CurrentValue = int(cmp.split(',')[1].strip(),16)
+
+    def parse_b_lo(self, b_lo):
+        address = int(b_lo,16)
+        index = 0
+        for function in self.Functions:
+            if int(function.address,16) > address:
+                break
+            index += 1
+        l = self.Functions[index:]
+        if index > 0:
+            self.Functions = self.Functions[0:index-1]
+        else:
+            self.Functions = []
+        self.Functions.append(Loop(Value(self.CurrentValue, 'int'), l, address, self.CurrentAddress))
+
 
     def parse_adrp(self, adrp):
         p = adrp.split(',')[0].strip()
@@ -161,9 +264,9 @@ class SubScript:
     def parse_b(self, b):
         if b == 'method.app::sv_animcmd.ATTACK_lua_State':
             if self.CurrentBlock:
-                self.CurrentBlock.Functions.append(Function(b, self.Values))
+                self.CurrentBlock.Functions.append(Function(b, self.Values, self.CurrentAddress))
             else:
-                self.Functions.append(Function(b, self.Values))
+                self.Functions.append(Function(b, self.Values, self.CurrentAddress))
             self.Values = []
         else:
             None
@@ -175,8 +278,10 @@ class SubScript:
         None
 
     def parse_bl(self, bl):
-        if '0x' in bl:
+        if '0x' in bl or 'fcn.' in bl:
             #Add subscript
+            if 'fcn.' in bl:
+                bl = bl.replace('fcn.', '0x')
             if self.r2:
                 script = self.r2.cmd('s {0};aF;pdf'.format(hex(int(bl,16))))
                 self.SubScript = SubScript(self.r2, script, self.Sections)
@@ -198,21 +303,26 @@ class SubScript:
             register = next((x for x in self.Registers if x.register == "x1"), None)
             self.Values.append(Value(Hash40(hex(register.value)), 'hash40'))
         elif bl == 'method.app::sv_animcmd.is_excute_lua_State':
-            self.Values.append('method.app::sv_animcmd.is_excute_lua_State')
+            self.Values.append(Value('method.app::sv_animcmd.is_excute_lua_State', 'function'))
         elif bl == 'method.lib::L2CValue.operatorbool__const':
+            #self.Values.append(Value(self.CurrentValue, 'bool'))
             if self.CurrentBlock:
-                self.CurrentBlock.Functions.append(Function('method.lib::L2CValue.operatorbool__const', self.Values))
+                self.CurrentBlock.Functions.append(Function('method.lib::L2CValue.operatorbool__const', self.Values, self.CurrentAddress))
             else:
-                self.Functions.append(Function('method.lib::L2CValue.operatorbool__const', self.Values))
+                self.Functions.append(Function('method.lib::L2CValue.operatorbool__const', self.Values, self.CurrentAddress))
             self.Values = []
-        elif bl == 'method.lib::L2CValue._L2CValue' or bl == 'method.lib::L2CValue.as_integer__const' or bl == 'method.lib::L2CValue.L2CValue_int' or bl == 'method.lib::L2CAgent.push_lua_stack_lib::L2CValueconst' or bl == 'method.lib::L2CValue.as_integer__const' or bl == 'method.lib::L2CValue.as_number__const' or bl == 'method.lib::L2CValue.as_bool__const' or bl == 'method.lib::L2CAgent.pop_lua_stack_int' or bl == 'method.lib::L2CAgent.clear_lua_stack':
+            self.CurrentValue = 0
+        elif bl == 'method.lib::L2CAgent.pop_lua_stack_int':
+            self.Values.append(Value(self.CurrentValue, 'int'))
+            self.CurrentValue = 0
+        elif bl == 'method.lib::L2CValue._L2CValue' or bl == 'method.lib::L2CValue.as_integer__const' or bl == 'method.lib::L2CValue.L2CValue_int' or bl == 'method.lib::L2CAgent.push_lua_stack_lib::L2CValueconst' or bl == 'method.lib::L2CValue.as_integer__const' or bl == 'method.lib::L2CValue.as_number__const' or bl == 'method.lib::L2CValue.as_bool__const' or bl == 'method.lib::L2CAgent.clear_lua_stack':
             #Ignore
             None
         else:
             if self.CurrentBlock:
-                self.CurrentBlock.Functions.append(Function(bl, self.Values))
+                self.CurrentBlock.Functions.append(Function(bl, self.Values, self.CurrentAddress))
             else:
-                self.Functions.append(Function(bl, self.Values))
+                self.Functions.append(Function(bl, self.Values, self.CurrentAddress))
             self.Values = []
         
     def parse_b_le(self, b_le):
@@ -223,7 +333,7 @@ class SubScript:
 
     def parse_tbz(self, tbz):
         op = self.Functions.pop()
-        block = Block(op, int(tbz.split(',')[2].strip(), 16))
+        block = Block(op, int(tbz.split(',')[2].strip(), 16), self.CurrentAddress)
 
         if self.CurrentBlock:
             self.Blocks.append(self.CurrentBlock)
@@ -247,11 +357,11 @@ class SubScript:
         r = ldr.split(',')[1].replace('[','').strip()
         if 'arg_' in r or 'local_' in r:
             return None
-        if 'w' in p and r == 'x21':
+        if 'w' in p:
             #Constant enum
             v = ldr.split(',')[2].replace(']','')
-            if v == 'x8':
-                register = next((x for x in self.Registers if x.register == 'w8'), None)
+            if v[0] == 'x':
+                register = next((x for x in self.Registers if x.register == v.replace('x','w')), None)
                 v = register.value
             else:
                 v = int(v, 16)
@@ -266,7 +376,15 @@ class SubScript:
             self.isConstant = True
         else:
             #Float value
-            v = int(ldr.split(',')[2].replace(']','').strip(), 16)
+            v = 0
+            if len(ldr.split(',')) < 3:
+                return None
+            if ldr.split(',')[2].replace(']','').strip()[0] == 'x':
+                rn = next((x for x in self.Registers if x.register == ldr.split(',')[2].replace(']','').strip()), None)
+                if rn:
+                    v = rn.value
+            else:
+                v = int(ldr.split(',')[2].replace(']','').replace('!','').strip(), 16)
             register = next((x for x in self.Registers if x.register == r.replace('x', 'w') or x.register == r), None)
             if register:
                 register.value += v
@@ -302,12 +420,33 @@ class SubScript:
             self.Registers.append(Register(p, v))
         self.CurrentValue = v
 
+    def parse_and(self, andd):
+        p = andd.split(',')[0]
+        v = andd.split(',')[1].strip()
+        o = int(andd.split(',')[2].strip(), 16)
+        if v == 'wzr':
+            v = 0
+        else:
+            r = next((x for x in self.Registers if x.register == v),None)
+            if r:
+                v = r.value
+            else:
+                v = 0
+        v = v & o
+        register = next((x for x in self.Registers if x.register == p), None)
+        if register:
+            register.value = v
+        else:
+            self.Registers.append(Register(p, v))
+        self.CurrentValue = v
+
     def Parse(self):
         for line, address in zip(self.lines, self.address):
             #print(line)
             t = line.split(' ')
             op = t[0]
             val = ''.join(t[1:])
+            self.CurrentAddress = address
 
             if self.SubScript:
                 self.SubScript.Values = self.Values
@@ -361,11 +500,27 @@ class SubScript:
                 self.parse_fmov(val)
             elif op == 'orr':
                 self.parse_orr(val)
+            elif op == 'and':
+                self.parse_and(val)
+            elif op == 'b.lo':
+                self.parse_b_lo(val)
+    
+    def print(self,depth):
+        s = ''
+        for fun_blk in self.Functions:
+            s += fun_blk.print(0) 
+        return s
 
 
 class Parser:
-    def __init__(self, r2, script, sectionList = []):
+    def __init__(self, r2, script, scriptName, sectionList = []):
+        self.scriptName = scriptName
+        print(self.scriptName)
         self.main = SubScript(r2, script, sectionList)
         self.main.Parse()
+        
 
-        print("done!")
+        #print(self.main.print())
+    
+    def Output(self):
+        return self.main.print(0)

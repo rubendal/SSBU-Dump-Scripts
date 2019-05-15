@@ -1,0 +1,6 @@
+method.app::sv_animcmd.frame_lua_State__float,1,Frame
+method.app::sv_animcmd.wait_lua_State__float,1,Frames
+method.app::sv_animcmd.ATTACK_lua_State,33,ID|Part|Bone|Damage|Angle|KBG|FKB|BKB|Size|X|Y|Z|Hitlag|SDI|Clang/Rebound|FacingRestrict|SetWeight|ShieldDamage|Trip|Rehit|Reflectable|Absorbable|Flinchless|DisableHitlag|Direct/Indirect|Ground/Air|Hitbits|CollisionPart|FriendlyFire|Effect|SFXLevel|SFXType|Type
+method.app::sv_animcmd.ATTACK_lua_State,36,ID|Part|Bone|Damage|Angle|KBG|FKB|BKB|Size|X|Y|Z|X2|Y2|Z2|Hitlag|SDI|Clang/Rebound|FacingRestrict|SetWeight|ShieldDamage|Trip|Rehit|Reflectable|Absorbable|Flinchless|DisableHitlag|Direct/Indirect|Ground/Air|Hitbits|CollisionPart|FriendlyFire|Effect|SFXLevel|SFXType|Type
+method.app::lua_bind.AttackModule__set_add_reaction_frame_impl_app::BattleObjectModuleAccessor__int_float_bool,3,ID|Frames|Unk
+method.app::sv_animcmd.ATK_SET_SHIELD_SETOFF_MUL_lua_State,2,ID|ShieldHitstunMul

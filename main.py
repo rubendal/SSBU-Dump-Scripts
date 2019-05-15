@@ -62,8 +62,14 @@ def dump(file):
                 if scriptAddress:
                     script = r2.cmd('s {0};aF;pdf'.format(hex(scriptAddress)))
 
-                    if testParser and hash.findHashValue() == "game_Attack11":
-                        parser = Parser(r2, script, sections)
+                    if testParser:
+                        try:
+                            parser = Parser(r2, script, hash.findHashValue(), sections)
+                            pf = open('parser/{0}.txt'.format(hash.findHashValue()),'w')
+                            pf.write(parser.Output())
+                            pf.close()
+                        except:
+                            print("Couldn't parse {0}".format(hash.findHashValue()))
 
                     script = script.replace('\r', '')
                     exists = os.path.exists("{0}/{1}/{2}/{3}.txt".format(output, filename, article.findHashValue(), hash.findHashValue()))
