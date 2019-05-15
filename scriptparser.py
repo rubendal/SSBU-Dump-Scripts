@@ -90,6 +90,8 @@ class Value:
 
     def print(self,depth):
         if self.type == 'intC':
+            if isinstance(self.value, int):
+                self.value = str(self.value)
             return self.value.replace('"','')
         elif self.type == 'bool':
             if self.value == 1:

@@ -54,6 +54,13 @@ def dump(file):
                 #Remove previous dumped files (to prevent duplicates with code used for script filename)
                 shutil.rmtree("{0}/{1}/{2}".format(output, filename, article.findHashValue()))
                 os.makedirs("{0}/{1}/{2}".format(output, filename, article.findHashValue()))
+
+            if testParser:
+                if not os.path.exists("{0}/{1}/{2}/{3}".format(output, filename, article.findHashValue(),"parser")):
+                    os.makedirs("{0}/{1}/{2}/{3}".format(output, filename, article.findHashValue(),"parser"))
+                else:
+                    shutil.rmtree("{0}/{1}/{2}/{3}".format(output, filename, article.findHashValue(),"parser"))
+                    os.makedirs("{0}/{1}/{2}/{3}".format(output, filename, article.findHashValue(),"parser"))
             
             for hash in article.scriptsHash:
                 scriptStart = r2.cmd('s {0};pd 20'.format(hash.getAddress()))
@@ -63,13 +70,11 @@ def dump(file):
                     script = r2.cmd('s {0};aF;pdf'.format(hex(scriptAddress)))
 
                     if testParser:
-                        try:
-                            parser = Parser(r2, script, hash.findHashValue(), sections)
-                            pf = open('parser/{0}.txt'.format(hash.findHashValue()),'w')
-                            pf.write(parser.Output())
-                            pf.close()
-                        except:
-                            print("Couldn't parse {0}".format(hash.findHashValue()))
+                        
+                        parser = Parser(r2, script, hash.findHashValue(), sections)
+                        pf = open('{0}/{1}/{2}/{3}/{4}.txt'.format(output, filename, article.findHashValue(), 'parser', hash.findHashValue()),'w')
+                        pf.write(parser.Output())
+                        pf.close()
 
                     script = script.replace('\r', '')
                     exists = os.path.exists("{0}/{1}/{2}/{3}.txt".format(output, filename, article.findHashValue(), hash.findHashValue()))
