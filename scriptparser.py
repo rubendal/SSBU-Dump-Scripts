@@ -99,7 +99,10 @@ class Value:
             else:
                 return 'False'
         elif self.type == 'function':
-            return '{0}()'.format(self.value)
+            if isinstance(self.value, Function):
+                return self.value.print(0).strip()
+            else:
+                return '{0}()'.format(self.value)
         elif self.type == 'hash40':
             return self.value.hash40
         elif self.type == 'int':
@@ -309,11 +312,15 @@ class SubScript:
         elif bl == 'method.lib::L2CValue.operatorbool__const':
             #self.Values.append(Value(self.CurrentValue, 'bool'))
             if self.CurrentBlock:
-                self.CurrentBlock.Functions.append(Function('method.lib::L2CValue.operatorbool__const', self.Values, self.CurrentAddress))
+                self.CurrentBlock.Functions.append(Function(bl, self.Values, self.CurrentAddress))
             else:
-                self.Functions.append(Function('method.lib::L2CValue.operatorbool__const', self.Values, self.CurrentAddress))
+                self.Functions.append(Function(bl, self.Values, self.CurrentAddress))
             self.Values = []
             self.CurrentValue = 0
+        elif bl == 'method.app::lua_bind.WorkModule__is_flag_impl_app::BattleObjectModuleAccessor__int':
+            self.CurrentValue = Value(Function(bl, self.Values, self.CurrentAddress), 'function')
+            self.Values = []
+            self.Values.append(self.CurrentValue)
         elif bl == 'method.lib::L2CAgent.pop_lua_stack_int':
             self.Values.append(Value(self.CurrentValue, 'int'))
             self.CurrentValue = 0
@@ -334,7 +341,11 @@ class SubScript:
         None
 
     def parse_tbz(self, tbz):
-        op = self.Functions.pop()
+        op = None
+        if self.CurrentBlock:
+            op = self.CurrentBlock.Functions.pop()
+        else:
+            op = self.Functions.pop()
         block = Block(op, int(tbz.split(',')[2].strip(), 16), self.CurrentAddress)
 
         if self.CurrentBlock:
