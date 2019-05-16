@@ -310,7 +310,6 @@ class SubScript:
         elif bl == 'method.app::sv_animcmd.is_excute_lua_State':
             self.Values.append(Value('method.app::sv_animcmd.is_excute_lua_State', 'function'))
         elif bl == 'method.lib::L2CValue.operatorbool__const':
-            #self.Values.append(Value(self.CurrentValue, 'bool'))
             if self.CurrentBlock:
                 self.CurrentBlock.Functions.append(Function(bl, self.Values, self.CurrentAddress))
             else:
@@ -318,9 +317,13 @@ class SubScript:
             self.Values = []
             self.CurrentValue = 0
         elif bl == 'method.app::lua_bind.WorkModule__is_flag_impl_app::BattleObjectModuleAccessor__int':
-            self.CurrentValue = Value(Function(bl, self.Values, self.CurrentAddress), 'function')
+            if self.CurrentBlock:
+                self.CurrentBlock.Functions.append(Function(bl, self.Values, self.CurrentAddress))
+            else:
+                self.Functions.append(Function(bl, self.Values, self.CurrentAddress))
             self.Values = []
-            self.Values.append(self.CurrentValue)
+            self.CurrentValue = 0
+
         elif bl == 'method.lib::L2CAgent.pop_lua_stack_int':
             self.Values.append(Value(self.CurrentValue, 'int'))
             self.CurrentValue = 0
@@ -475,11 +478,20 @@ class SubScript:
 
             if self.CurrentBlock:
                 if int(address,16) == self.CurrentBlock.branch:
-                    self.Functions.append(self.CurrentBlock)
                     if len(self.Blocks) == 0:
+                        self.Functions.append(self.CurrentBlock)
                         self.CurrentBlock = None
                     else:
-                        self.CurrentBlock = self.Blocks.pop()
+                        while len(self.Blocks) > 0:
+                            block = self.CurrentBlock
+                            self.CurrentBlock = self.Blocks.pop()
+                            self.CurrentBlock.Functions.append(block)
+                            if int(address,16) != self.CurrentBlock.branch:
+                                break
+                        if len(self.Blocks) == 0:
+                            self.Functions.append(self.CurrentBlock)
+                            self.CurrentBlock = None
+                        
 
             if op == 'movz':
                 self.parse_movz(val)
@@ -528,12 +540,10 @@ class SubScript:
 class Parser:
     def __init__(self, r2, script, scriptName, sectionList = []):
         self.scriptName = scriptName
-        print(self.scriptName)
+        #print(self.scriptName)
         self.main = SubScript(r2, script, sectionList)
         self.main.Parse()
-        
 
-        #print(self.main.print())
     
     def Output(self):
         return self.main.print(0)

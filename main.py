@@ -35,7 +35,7 @@ def dump(file):
             os.makedirs(output)
         
         if not os.path.exists("{0}/{1}".format(output, filename)):
-                os.makedirs("{0}/{1}".format(output, filename))
+            os.makedirs("{0}/{1}".format(output, filename))
 
         if len(p.Issues) > 0:
             #Log missing scripts in file due to issues on parsing or radare2 output
@@ -58,9 +58,6 @@ def dump(file):
             if testParser:
                 if not os.path.exists("{0}/{1}/{2}/{3}".format(output, filename, article.findHashValue(),"parser")):
                     os.makedirs("{0}/{1}/{2}/{3}".format(output, filename, article.findHashValue(),"parser"))
-                else:
-                    shutil.rmtree("{0}/{1}/{2}/{3}".format(output, filename, article.findHashValue(),"parser"))
-                    os.makedirs("{0}/{1}/{2}/{3}".format(output, filename, article.findHashValue(),"parser"))
             
             for hash in article.scriptsHash:
                 scriptStart = r2.cmd('s {0};pd 20'.format(hash.getAddress()))
@@ -70,11 +67,13 @@ def dump(file):
                     script = r2.cmd('s {0};aF;pdf'.format(hex(scriptAddress)))
 
                     if testParser:
-                        
-                        parser = Parser(r2, script, hash.findHashValue(), sections)
-                        pf = open('{0}/{1}/{2}/{3}/{4}.txt'.format(output, filename, article.findHashValue(), 'parser', hash.findHashValue()),'w')
-                        pf.write(parser.Output())
-                        pf.close()
+                        try:
+                            parser = Parser(r2, script, hash.findHashValue(), sections)
+                            pf = open('{0}/{1}/{2}/{3}/{4}.txt'.format(output, filename, article.findHashValue(), 'parser', hash.findHashValue()),'w')
+                            pf.write(parser.Output())
+                            pf.close()
+                        except:
+                            print("Couldn't parse {0}".format(hash.findHashValue()))
 
                     script = script.replace('\r', '')
                     exists = os.path.exists("{0}/{1}/{2}/{3}.txt".format(output, filename, article.findHashValue(), hash.findHashValue()))
