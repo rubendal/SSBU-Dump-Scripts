@@ -2,9 +2,9 @@ from article import Article, ScriptHash
 from hash40 import Hash40
 import re
 
-class Pointer:
-    def __init__(self, pointer, value):
-        self.pointer = pointer
+class Register:
+    def __init__(self, register, value):
+        self.register = register
         self.value = value
 
 class ArticleBranch:
@@ -12,7 +12,7 @@ class ArticleBranch:
         self.article = article
         self.branch = branch
 
-Pointers = []
+Registers = []
 Articles = []
 Hashes = []
 CurrentArticle = None
@@ -39,22 +39,22 @@ def RemoveArticle(article):
 def parse_movz(movz):
     p = movz.split(',')[0]
     v = int(movz.split(',')[1], 16)
-    pointer = next((x for x in Pointers if x.pointer == p), None)
-    if pointer:
-        pointer.value = v
+    register = next((x for x in Registers if x.register == p), None)
+    if register:
+        register.value = v
     else:
-        Pointers.append(Pointer(p, v))
+        Registers.append(Register(p, v))
 
 def parse_movk(movk):
     p = movk.split(',')[0]
     v = int(movk.split(',')[1].strip(), 16)
     bs = int(movk.split(',')[2].strip().replace('lsl', ''))
     v = v << bs
-    pointer = next((x for x in Pointers if x.pointer == p), None)
-    if pointer:
-        pointer.value += v
+    register = next((x for x in Registers if x.register == p), None)
+    if register:
+        register.value += v
     else:
-        Pointers.append(Pointer(p, v))
+        Registers.append(Register(p, v))
 
 def parse_cmp(cmp):
     None
@@ -62,11 +62,11 @@ def parse_cmp(cmp):
 def parse_adrp(adrp):
     p = adrp.split(',')[0].strip()
     v = int(adrp.split(',')[1], 16)
-    pointer = next((x for x in Pointers if x.pointer == p), None)
-    if pointer:
-        pointer.value = v
+    register = next((x for x in Registers if x.register == p), None)
+    if register:
+        register.value = v
     else:
-        Pointers.append(Pointer(p, v))
+        Registers.append(Register(p, v))
 
 def parse_add(add):
     global hasIssue
@@ -74,29 +74,29 @@ def parse_add(add):
     p2 = add.split(',')[1].strip()
     try:
         v = int(add.split(',')[2], 16)
-        pointer = next((x for x in Pointers if x.pointer == p), None)
-        if pointer:
-            pointer.value += v
+        register = next((x for x in Registers if x.register == p), None)
+        if register:
+            register.value += v
         else:
-            Pointers.append(Pointer(p, v))
+            Registers.append(Register(p, v))
     except:
         try:
             f = add.split(':')[2].replace('_phx','').replace('_lib','').replace('_void','')
             find = next((x for x in Sections if '::' in x.function and x.function.split(':')[2].split('(')[0] == f), None)
             if find:
                 v = find.num
-                pointer = next((x for x in Pointers if x.pointer == p), None)
-                if pointer:
-                    pointer.value += v
+                register = next((x for x in Registers if x.register == p), None)
+                if register:
+                    register.value += v
                 else:
-                    Pointers.append(Pointer(p, v))
+                    Registers.append(Register(p, v))
             else:
-                px2 = next((x for x in Pointers if x.pointer == "x2"), None)
+                px2 = next((x for x in Registers if x.register == "x2"), None)
                 if px2:
                     Issues.append(Issue(Hash40(hex(px2.value)), add.split(',')[2]))
                 hasIssue = True
         except:
-            px2 = next((x for x in Pointers if x.pointer == "x2"), None)
+            px2 = next((x for x in Registers if x.register == "x2"), None)
             if px2:
                 Issues.append(Issue(Hash40(hex(px2.value)), add.split(',')[2]))
             hasIssue = True
@@ -112,23 +112,23 @@ def parse_b(b):
 def parse_b_ne(b_ne):
     global CurrentArticle
     p = "x9"
-    pointer = next((x for x in Pointers if x.pointer == p), None)
-    if pointer:
-        AddArticle(pointer.value, b_ne)
-        CurrentArticle = pointer.value
+    register = next((x for x in Registers if x.register == p), None)
+    if register:
+        AddArticle(register.value, b_ne)
+        CurrentArticle = register.value
 
 def parse_b_eq(b_eq):
     p = "x9"
-    pointer = next((x for x in Pointers if x.pointer == p), None)
-    if pointer:
-        AddArticle(pointer.value, b_eq)
+    register = next((x for x in Registers if x.register == p), None)
+    if register:
+        AddArticle(register.value, b_eq)
 
 def parse_bl(bl):
     global hasIssue, Hashes
     if "::Hash40" in bl:
         if not hasIssue:
-            px1 = next((x for x in Pointers if x.pointer == "x1"), None)
-            px2 = next((x for x in Pointers if x.pointer == "x2"), None)
+            px1 = next((x for x in Registers if x.register == "x1"), None)
+            px2 = next((x for x in Registers if x.register == "x2"), None)
             if px1 and px2:
                 Hashes.append(ScriptHash(Hash40(hex(px2.value)), px1.value))
         else:
@@ -136,22 +136,22 @@ def parse_bl(bl):
 
 def parse_b_le(b_le):
     p = "x9"
-    pointer = next((x for x in Pointers if x.pointer == p), None)
-    if pointer:
-        AddArticle(pointer.value, b_le)
+    register = next((x for x in Registers if x.register == p), None)
+    if register:
+        AddArticle(register.value, b_le)
   
 
 def parse_b_gt(b_gt):
     p = "x9"
-    pointer = next((x for x in Pointers if x.pointer == p), None)
-    if pointer:
-        AddArticle(pointer.value, b_gt)
+    register = next((x for x in Registers if x.register == p), None)
+    if register:
+        AddArticle(register.value, b_gt)
 
 
 class ParseAnimcmdList:
     def __init__(self, text, sectionList = []):
-        global CurrentArticle, ArticleScripts, Pointers, Articles, Hashes, hasIssue, Issues, Sections
-        Pointers = []
+        global CurrentArticle, ArticleScripts, Registers, Articles, Hashes, hasIssue, Issues, Sections
+        Registers = []
         Articles = []
         Hashes = []
         CurrentArticle = None
