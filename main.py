@@ -6,6 +6,7 @@ from sectionTable import SectionTable, Section
 from parseAnimcmdList import ParseAnimcmdList
 from parseAnimcmdStart import ParseAnimcmdStart
 from scriptparser import Parser
+from util import adjustr2Output
 
 output = "output"
 testParser = False
@@ -19,13 +20,13 @@ def dump(file):
         return
 
     r2 = r2pipe.open(file)
-    sections = SectionTable(r2.cmd("is")).sections
+    sections = SectionTable(adjustr2Output(r2.cmd("is"))).sections
     r2.cmd('e anal.bb.maxsize = 0x10000')
     game = next((x for x in sections if "lua2cpp::create_agent_fighter_animcmd_game_" in x.function and "_share_" not in x.function), None)
     if game:
         print("{0} found".format(game.function))
 
-        af = r2.cmd('s {0};af;pdf'.format(game.getAddress()))
+        af = adjustr2Output(r2.cmd('s {0};af;pdf'.format(game.getAddress())))
         
         p = ParseAnimcmdList(af, sections)
 
@@ -60,11 +61,11 @@ def dump(file):
                     os.makedirs("{0}/{1}/{2}/{3}".format(output, filename, article.findHashValue(),"parser"))
             
             for hash in article.scriptsHash:
-                scriptStart = r2.cmd('s {0};pd 20'.format(hash.getAddress()))
+                scriptStart = adjustr2Output(r2.cmd('s {0};pd 20'.format(hash.getAddress())))
                 scriptAddress = ParseAnimcmdStart(scriptStart).address
 
                 if scriptAddress:
-                    script = r2.cmd('s {0};aF;pdf'.format(hex(scriptAddress)))
+                    script = adjustr2Output(r2.cmd('s {0};aF;pdf'.format(hex(scriptAddress))))
 
                     if testParser:
                         try:

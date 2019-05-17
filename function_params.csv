@@ -4,3 +4,10 @@ method.app::sv_animcmd.ATTACK_lua_State,33,ID|Part|Bone|Damage|Angle|KBG|FKB|BKB
 method.app::sv_animcmd.ATTACK_lua_State,36,ID|Part|Bone|Damage|Angle|KBG|FKB|BKB|Size|X|Y|Z|X2|Y2|Z2|Hitlag|SDI|Clang/Rebound|FacingRestrict|SetWeight|ShieldDamage|Trip|Rehit|Reflectable|Absorbable|Flinchless|DisableHitlag|Direct/Indirect|Ground/Air|Hitbits|CollisionPart|FriendlyFire|Effect|SFXLevel|SFXType|Type
 method.app::lua_bind.AttackModule__set_add_reaction_frame_impl_app::BattleObjectModuleAccessor__int_float_bool,3,ID|Frames|Unk
 method.app::sv_animcmd.ATK_SET_SHIELD_SETOFF_MUL_lua_State,2,ID|ShieldHitstunMul
+method.app::sv_animcmd.ATTACK_ABS_lua_State,16,Kind|ID|Damage|Angle|KBG|FKB|BKB|SDI|Hitlag|FacingRestrict|Unk|DisableHitlag|Effect|SFXLevel|SFXType|Type
+method.app::lua_bind.WorkModule__on_flag_impl_app::BattleObjectModuleAccessor__int,1,Flag
+method.app::lua_bind.WorkModule__off_flag_impl_app::BattleObjectModuleAccessor__int,1,Flag
+method.app::lua_bind.AttackModule__clear_impl_app::BattleObjectModuleAccessor__int_bool,1,ID
+method.app::lua_bind.GrabModule__set_rebound_impl_app::BattleObjectModuleAccessor__bool,1,CanCatchRebound
+method.app::sv_animcmd.CATCH_lua_State,11,ID|Bone|Size|X|Y|Z|X2|Y2|Z2|Status|Ground/Air
+method.app::sv_animcmd.CATCH_lua_State,8,ID|Bone|Size|X|Y|Z|Status|Ground/Air

@@ -1,5 +1,6 @@
 import re
 from hash40 import Hash40
+from util import adjustr2Output
 
 class Constant:
     def __init__(self, index, name):
@@ -301,7 +302,7 @@ class SubScript:
             if 'fcn.' in bl:
                 bl = bl.replace('fcn.', '0x')
             if self.r2:
-                script = self.r2.cmd('s {0};aF;pdf'.format(hex(int(bl,16))))
+                script = adjustr2Output(self.r2.cmd('s {0};aF;pdf'.format(hex(int(bl,16)))))
                 self.SubScript = SubScript(self.r2, script, self.Sections)
         elif bl == 'method.lib::L2CValue.L2CValue_int':
             if isinstance(self.CurrentValue,Value):
@@ -447,23 +448,36 @@ class SubScript:
                     v = rn.value
             else:
                 v = int(ldr.split(',')[2].replace(']','').replace('!','').strip(), 16)
-            register = next((x for x in self.Registers if x.register == r.replace('x', 'w') or x.register == r), None)
+            register = next((x for x in self.Registers if x.register == r), None)
             if register:
                 register.value += v
                 if self.r2:
-                    v = self.r2.cmd('s {0};pf f'.format(register.value))
+                    v = adjustr2Output(self.r2.cmd('s {0};pf f'.format(register.value)))
                     v = float(v.split('=')[1].strip())
-                    register2 = next((x for x in self.Registers if x.register == p.replace('x', 'w') or x.register == p), None)
+                    register2 = next((x for x in self.Registers if x.register == p or x.register == p.replace('x', 'w')), None)
                     if register2:
                         register2.value = v
                     else:
                         self.Registers.append(Register(p, v))
                     self.CurrentValue = v
             else:
-                self.Registers.append(Register(p, v))
-                if self.r2:
-                    v = self.r2.cmd('s {0};pf f'.format(v))
-                    self.CurrentValue = float(v.split('=')[1].strip())
+                register = next((x for x in self.Registers if x.register == r.replace('x','w')), None)
+                if register:
+                    register.value += v
+                    if self.r2:
+                        v = adjustr2Output(self.r2.cmd('s {0};pf f'.format(register.value)))
+                        v = float(v.split('=')[1].strip())
+                        register2 = next((x for x in self.Registers if x.register == p or x.register == p.replace('x', 'w')), None)
+                        if register2:
+                            register2.value = v
+                        else:
+                            self.Registers.append(Register(p, v))
+                        self.CurrentValue = v
+                else:
+                    self.Registers.append(Register(p, v))
+                    if self.r2:
+                        v = adjustr2Output(self.r2.cmd('s {0};pf f'.format(v)))
+                        self.CurrentValue = float(v.split('=')[1].strip())
 
     def parse_orr(self, orr):
         p = orr.split(',')[0]
