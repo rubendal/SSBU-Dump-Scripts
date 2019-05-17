@@ -129,6 +129,7 @@ class SubScript:
         self.CurrentBlock = None
         self.Functions = []
         self.Values = []
+        self.PrevStack = []
         self.SubScript = None
         self.prevOperation = None
         self.isConstant = False
@@ -269,10 +270,10 @@ class SubScript:
     def parse_b(self, b):
         if b == 'method.app::sv_animcmd.ATTACK_lua_State':
             if self.CurrentBlock:
-                self.CurrentBlock.Functions.append(Function(b, self.Values, self.CurrentAddress))
+                self.CurrentBlock.Functions.append(Function(b, self.PrevStack, self.CurrentAddress))
             else:
-                self.Functions.append(Function(b, self.Values, self.CurrentAddress))
-            self.Values = []
+                self.Functions.append(Function(b, self.PrevStack, self.CurrentAddress))
+            self.PrevStack = []
         else:
             None
                 
@@ -291,6 +292,8 @@ class SubScript:
                 script = self.r2.cmd('s {0};aF;pdf'.format(hex(int(bl,16))))
                 self.SubScript = SubScript(self.r2, script, self.Sections)
         elif bl == 'method.lib::L2CValue.L2CValue_int':
+            if isinstance(self.CurrentValue,Value):
+                self.CurrentValue = self.CurrentValue.value
             if self.isConstant:
                 self.Values.append(Value(self.CurrentValue, 'intC'))
                 self.CurrentValue = 0
@@ -299,9 +302,13 @@ class SubScript:
                 self.Values.append(Value(self.CurrentValue, 'int'))
                 self.CurrentValue = 0
         elif bl == 'method.lib::L2CValue.L2CValue_float':
+            if isinstance(self.CurrentValue,Value):
+                self.CurrentValue = self.CurrentValue.value
             self.Values.append(Value(self.CurrentValue, 'float'))
             self.CurrentValue = 0
         elif bl == 'method.lib::L2CValue.L2CValue_bool':
+            if isinstance(self.CurrentValue,Value):
+                self.CurrentValue = self.CurrentValue.value
             self.Values.append(Value(self.CurrentValue, 'bool'))
             self.CurrentValue = 0
         elif bl == 'method.lib::L2CValue.L2CValue_phx::Hash40':
@@ -325,17 +332,43 @@ class SubScript:
             self.CurrentValue = 0
 
         elif bl == 'method.lib::L2CAgent.pop_lua_stack_int':
-            self.Values.append(Value(self.CurrentValue, 'int'))
-            self.CurrentValue = 0
-        elif bl == 'method.lib::L2CValue._L2CValue' or bl == 'method.lib::L2CValue.as_integer__const' or bl == 'method.lib::L2CValue.L2CValue_int' or bl == 'method.lib::L2CAgent.push_lua_stack_lib::L2CValueconst' or bl == 'method.lib::L2CValue.as_integer__const' or bl == 'method.lib::L2CValue.as_number__const' or bl == 'method.lib::L2CValue.as_bool__const' or bl == 'method.lib::L2CAgent.clear_lua_stack':
+            #self.Values.append(Value(self.CurrentValue, 'int'))
+            #self.CurrentValue = 0
+            None
+        elif bl == 'method.lib::L2CAgent.clear_lua_stack':
+            self.PrevStack = self.Values
+            self.Values = []
+        elif bl == 'method.lib::L2CValue.as_integer__const':
+            self.CurrentValue = Value(self.CurrentValue, 'int')
+        elif bl == 'method.lib::L2CValue.as_number__const':
+            self.CurrentValue = Value(self.CurrentValue, 'float')
+        elif bl == 'method.lib::L2CValue.as_bool__const':
+            self.CurrentValue = Value(self.CurrentValue, 'bool')
+        elif bl == 'method.lib::L2CValue.L2CValue_long' or bl == 'method.lib::L2CValue.L2CValue_long':
+            #self.CurrentValue = Value(self.CurrentValue, 'long')
+            None
+        elif bl == 'method.lib::L2CValue._L2CValue' or bl == 'method.lib::L2CAgent.push_lua_stack_lib::L2CValueconst':
             #Ignore
             None
+        #elif bl == 'method.app::sv_animcmd.frame_lua_State__float' or bl == 'method.app::sv_animcmd.wait_lua_State__float':
+        #    if self.CurrentBlock:
+        #        self.CurrentBlock.Functions.append(Function(bl, self.PrevStack, self.CurrentAddress))
+        #    else:
+        #        self.Functions.append(Function(bl, self.PrevStack, self.CurrentAddress))
+        #    self.PrevStack = []
         else:
-            if self.CurrentBlock:
-                self.CurrentBlock.Functions.append(Function(bl, self.Values, self.CurrentAddress))
+            if len(self.Values) > 0:
+                if self.CurrentBlock:
+                    self.CurrentBlock.Functions.append(Function(bl, self.Values, self.CurrentAddress))
+                else:
+                    self.Functions.append(Function(bl, self.Values, self.CurrentAddress))
+                self.Values = []
             else:
-                self.Functions.append(Function(bl, self.Values, self.CurrentAddress))
-            self.Values = []
+                if self.CurrentBlock:
+                    self.CurrentBlock.Functions.append(Function(bl, self.PrevStack, self.CurrentAddress))
+                else:
+                    self.Functions.append(Function(bl, self.PrevStack, self.CurrentAddress))
+                self.PrevStack = []
         
     def parse_b_le(self, b_le):
         None
@@ -540,7 +573,7 @@ class SubScript:
 class Parser:
     def __init__(self, r2, script, scriptName, sectionList = []):
         self.scriptName = scriptName
-        #print(self.scriptName)
+        print(self.scriptName)
         self.main = SubScript(r2, script, sectionList)
         self.main.Parse()
 
