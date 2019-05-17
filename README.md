@@ -14,3 +14,4 @@ python main.py "directory with .elf files" (-p)
 
 ## To do
 * Add missing script and article names
+* Fix issues on parser [More details about issues](https://github.com/rubendal/SSBU-Dump-Scripts/projects/1)
