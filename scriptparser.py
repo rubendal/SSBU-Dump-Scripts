@@ -49,6 +49,7 @@ class Loop:
         self.iterator = iterator
         self.Functions = functions
         self.branch = branch
+        self.address = address
 
     def print(self,depth):
         s = ('\t' * depth) + 'for(' + self.iterator.iteratorPrint() + ' Iterations){\n'
@@ -144,7 +145,15 @@ class SubScript:
                         ignoreLine = False
                     else:
                         a = l.split(';')[0].strip().split("  ")
+                        hasValue = None
+                        for c in l.split(';')[1:]:
+                            t = re.search(" 0x[0-9a-f]+ ", c)
+                            if t:
+                                hasValue = t.group()
                         line = a[len(a)-1][1:]
+                        testStr = re.search("str\.([a-z]|[A-Z]|[0-9]|_)+", line) #Replace string for hex value
+                        if testStr:
+                            line = line.replace(testStr.group(), hasValue)
                         self.lines.append(line)
                         address = re.search("0x[0-9a-f]{8}", l)
                         if address:
@@ -387,6 +396,7 @@ class SubScript:
             op = self.Functions.pop()
         block = Block(op, int(tbz.split(',')[2].strip(), 16), self.CurrentAddress)
 
+
         if self.CurrentBlock:
             self.Blocks.append(self.CurrentBlock)
         self.CurrentBlock = block
@@ -452,7 +462,8 @@ class SubScript:
             else:
                 self.Registers.append(Register(p, v))
                 if self.r2:
-                    self.CurrentValue = self.r2.cmd('s {0};pf f'.format(v))
+                    v = self.r2.cmd('s {0};pf f'.format(v))
+                    self.CurrentValue = float(v.split('=')[1].strip())
 
     def parse_orr(self, orr):
         p = orr.split(',')[0]
