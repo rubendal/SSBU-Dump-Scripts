@@ -277,8 +277,8 @@ class SubScript:
         elif '0x' in b or 'fcn.' in b:
             None
         else:
-            print('Function on b: {0}'.format(b))
-            #None
+            #print('Function on b: {0}'.format(b))
+            None
                 
     def parse_b_ne(self, b_ne):
         None
@@ -576,7 +576,7 @@ class SubScript:
 class Parser:
     def __init__(self, r2, script, scriptName, sectionList = []):
         self.scriptName = scriptName
-        print(self.scriptName)
+        #print(self.scriptName)
         self.main = SubScript(r2, script, sectionList)
         self.main.Parse()
 
