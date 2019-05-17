@@ -268,14 +268,17 @@ class SubScript:
                 None #sp
         
     def parse_b(self, b):
-        if b == 'method.app::sv_animcmd.ATTACK_lua_State' or b == 'method.app::sv_animcmd.ATTACK_ABS_lua_State':
+        if b == 'method.app::sv_animcmd.ATTACK_lua_State' or b == 'method.app::sv_animcmd.ATTACK_ABS_lua_State' or bl == 'method.app::sv_animcmd.SEARCH_lua_State':
             if self.CurrentBlock:
                 self.CurrentBlock.Functions.append(Function(b, self.PrevStack, self.CurrentAddress))
             else:
                 self.Functions.append(Function(b, self.PrevStack, self.CurrentAddress))
             self.PrevStack = []
-        else:
+        elif '0x' in b or 'fcn.' in b:
             None
+        else:
+            print('Function on b: {0}'.format(b))
+            #None
                 
     def parse_b_ne(self, b_ne):
         None
