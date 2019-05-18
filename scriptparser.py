@@ -1,4 +1,4 @@
-import re
+import re, ctypes
 from hash40 import Hash40
 from util import adjustr2Output
 
@@ -79,10 +79,10 @@ class Function:
         return s
 
     def printCondition(self):
-        s = '{0}( '.format(self.function)
+        s = '{0}('.format(self.function)
         for param in self.params:
             s += '{0}, '.format(param.print(0))
-        s = s.strip(', ') + ' )'
+        s = s.strip(', ') + ')'
         return s
 
 class Value:
@@ -166,7 +166,7 @@ class SubScript:
         h = movz.split(',')[1]
         if h == 'wzr':
             h = '0x0'
-        v = int(h, 16)
+        v = ctypes.c_int32(int(h, 16)).value
         register = next((x for x in self.Registers if x.register == p), None)
         if register:
             register.value = v
@@ -179,7 +179,7 @@ class SubScript:
         h = movk.split(',')[1].strip()
         if h == 'wzr':
             h = '0x0'
-        v = int(h, 16)
+        v = ctypes.c_int32(int(h, 16)).value
         if h != 0:
             bs = int(movk.split(',')[2].strip().replace('lsl', ''))
             v = v << bs
@@ -204,7 +204,7 @@ class SubScript:
                 self.CurrentValue = register.value
         else:
             try:
-                v = int(h, 16)
+                v = ctypes.c_int32(int(h, 16)).value
                 register = next((x for x in self.Registers if x.register == p), None)
                 if register:
                     register.value = v
@@ -257,7 +257,7 @@ class SubScript:
         p = add.split(',')[0].strip()
         p2 = add.split(',')[1].strip()
         try:
-            v = int(add.split(',')[2], 16)
+            v = ctypes.c_int32(int(add.split(',')[2], 16)).value
             register = next((x for x in self.Registers if x.register == p), None)
             if register:
                 register.value += v
@@ -289,6 +289,15 @@ class SubScript:
         else:
             #print('Function on b: {0}'.format(b))
             None
+
+    def parse_br(self, br):
+        register = next((x for x in self.Registers if x.register == br), None)
+        if register:
+            if self.CurrentBlock:
+                self.CurrentBlock.Functions.append(Function(hex(register.value), self.Values, self.CurrentAddress))
+            else:
+                self.Functions.append(Function(hex(register.value), self.Values, self.CurrentAddress))
+        self.Values = []
                 
     def parse_b_ne(self, b_ne):
         None
@@ -337,12 +346,9 @@ class SubScript:
             self.Values = []
             self.CurrentValue = 0
         elif bl == 'method.app::lua_bind.WorkModule__is_flag_impl_app::BattleObjectModuleAccessor__int':
-            if self.CurrentBlock:
-                self.CurrentBlock.Functions.append(Function(bl, self.Values, self.CurrentAddress))
-            else:
-                self.Functions.append(Function(bl, self.Values, self.CurrentAddress))
+            l = self.Values
             self.Values = []
-            self.CurrentValue = 0
+            self.Values.append(Value(Function(bl, l, self.CurrentAddress), 'function'))
         elif bl == 'method.lib::L2CValue.L2CValue_long':
             self.CurrentValue = 0
         elif bl == 'method.app::lua_bind.WorkModule__get_int64_impl_app::BattleObjectModuleAccessor__int':
@@ -441,7 +447,10 @@ class SubScript:
                 self.CurrentValue = v
             self.isConstant = True
         else:
-            #Float value
+            #Float/Integer value
+            format = 'f'
+            if 'x' in p:
+                format = 'i'
             v = 0
             if len(ldr.split(',')) < 3:
                 return None
@@ -450,13 +459,16 @@ class SubScript:
                 if rn:
                     v = rn.value
             else:
-                v = int(ldr.split(',')[2].replace(']','').replace('!','').strip(), 16)
+                v = ctypes.c_int32(int(ldr.split(',')[2].replace(']','').replace('!','').strip(), 16)).value
             register = next((x for x in self.Registers if x.register == r), None)
             if register:
                 register.value += v
                 if self.r2:
-                    v = adjustr2Output(self.r2.cmd('s {0};pf f'.format(register.value)))
-                    v = float(v.split('=')[1].strip())
+                    v = adjustr2Output(self.r2.cmd('s {0};pf {1}'.format(register.value, format)))
+                    if format == 'f':
+                        v = float(v.split('=')[1].strip())
+                    else:
+                        v = ctypes.c_int32(int(v.split('=')[1].strip())).value
                     register2 = next((x for x in self.Registers if x.register == p or x.register == p.replace('x', 'w')), None)
                     if register2:
                         register2.value = v
@@ -468,8 +480,11 @@ class SubScript:
                 if register:
                     register.value += v
                     if self.r2:
-                        v = adjustr2Output(self.r2.cmd('s {0};pf f'.format(register.value)))
-                        v = float(v.split('=')[1].strip())
+                        v = adjustr2Output(self.r2.cmd('s {0};pf {1}'.format(register.value, format)))
+                        if format == 'f':
+                            v = float(v.split('=')[1].strip())
+                        else:
+                            v = ctypes.c_int32(int(v.split('=')[1].strip())).value
                         register2 = next((x for x in self.Registers if x.register == p or x.register == p.replace('x', 'w')), None)
                         if register2:
                             register2.value = v
@@ -479,13 +494,16 @@ class SubScript:
                 else:
                     self.Registers.append(Register(p, v))
                     if self.r2:
-                        v = adjustr2Output(self.r2.cmd('s {0};pf f'.format(v)))
-                        self.CurrentValue = float(v.split('=')[1].strip())
+                        v = adjustr2Output(self.r2.cmd('s {0};pf {1}'.format(v, format)))
+                        if format == 'f':
+                            self.CurrentValue = float(v.split('=')[1].strip())
+                        else:
+                            self.CurrentValue = ctypes.c_int32(int(v.split('=')[1].strip())).value
 
     def parse_orr(self, orr):
         p = orr.split(',')[0]
         v = orr.split(',')[1].strip()
-        o = int(orr.split(',')[2].strip(), 16)
+        o = ctypes.c_int32(int(orr.split(',')[2].strip(), 16)).value
         if v == 'wzr':
             v = 0
         else:
@@ -503,7 +521,7 @@ class SubScript:
     def parse_and(self, andd):
         p = andd.split(',')[0]
         v = andd.split(',')[1].strip()
-        o = int(andd.split(',')[2].strip(), 16)
+        o = ctypes.c_int32(int(andd.split(',')[2].strip(), 16)).value
         if v == 'wzr':
             v = 0
         else:
@@ -593,6 +611,8 @@ class SubScript:
                 self.parse_and(val)
             elif op == 'b.lo':
                 self.parse_b_lo(val)
+            elif op == 'br':
+                self.parse_br(val)
     
     def print(self,depth):
         s = ''

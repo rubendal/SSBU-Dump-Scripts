@@ -59,7 +59,7 @@ def dump(file):
 
             if not os.path.exists("{0}/{1}/{2}".format(output, filename, article.findHashValue())):
                 os.makedirs("{0}/{1}/{2}".format(output, filename, article.findHashValue()))
-                
+
             if parseScripts:
                 if not os.path.exists("{0}/{1}/{2}".format(parserOutput, filename, article.findHashValue())):
                     os.makedirs("{0}/{1}/{2}".format(parserOutput, filename, article.findHashValue()))
@@ -81,20 +81,20 @@ def dump(file):
                             print("Couldn't parse {0}".format(hash.findHashValue()))
 
                     script = script.replace('\r', '')
-                    exists = os.path.exists("{0}/{1}/{2}/{3}.txt".format(output, filename, article.findHashValue(), hash.findHashValue()))
-                    if not exists:
-                        f = open("{0}/{1}/{2}/{3}.txt".format(output, filename, article.findHashValue(), hash.findHashValue()), "w")
-                        f.write(script)
-                        f.close()
-                    else:
-                        v = 2
-                        while exists:
-                            exists = os.path.exists("{0}/{1}/{2}/{3} ({4}).txt".format(output, filename, article.findHashValue(), hash.findHashValue(), v))
-                            if not exists:
-                                f = open("{0}/{1}/{2}/{3} ({4}).txt".format(output, filename, article.findHashValue(), hash.findHashValue(), v), "w")
-                                f.write(script)
-                                f.close()
-                            v += 1
+                    #exists = os.path.exists("{0}/{1}/{2}/{3}.txt".format(output, filename, article.findHashValue(), hash.findHashValue()))
+                    #if not exists:
+                    f = open("{0}/{1}/{2}/{3}.txt".format(output, filename, article.findHashValue(), hash.findHashValue()), "w")
+                    f.write(script)
+                    f.close()
+                    #else:
+                    #    v = 2
+                    #    while exists:
+                    #        exists = os.path.exists("{0}/{1}/{2}/{3} ({4}).txt".format(output, filename, article.findHashValue(), hash.findHashValue(), v))
+                    #        if not exists:
+                    #            f = open("{0}/{1}/{2}/{3} ({4}).txt".format(output, filename, article.findHashValue(), hash.findHashValue(), v), "w")
+                    #            f.write(script)
+                    #            f.close()
+                    #        v += 1
 
     else:
         print('animcmd_game not found on file {0}'.format(file))
