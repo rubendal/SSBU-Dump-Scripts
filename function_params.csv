@@ -3,7 +3,7 @@ method.app::sv_animcmd.wait_lua_State__float,1,Frames
 method.app::sv_animcmd.ATTACK_lua_State,33,ID|Part|Bone|Damage|Angle|KBG|FKB|BKB|Size|X|Y|Z|Hitlag|SDI|Clang/Rebound|FacingRestrict|SetWeight|ShieldDamage|Trip|Rehit|Reflectable|Absorbable|Flinchless|DisableHitlag|Direct/Indirect|Ground/Air|Hitbits|CollisionPart|FriendlyFire|Effect|SFXLevel|SFXType|Type
 method.app::sv_animcmd.ATTACK_lua_State,36,ID|Part|Bone|Damage|Angle|KBG|FKB|BKB|Size|X|Y|Z|X2|Y2|Z2|Hitlag|SDI|Clang/Rebound|FacingRestrict|SetWeight|ShieldDamage|Trip|Rehit|Reflectable|Absorbable|Flinchless|DisableHitlag|Direct/Indirect|Ground/Air|Hitbits|CollisionPart|FriendlyFire|Effect|SFXLevel|SFXType|Type
 method.app::lua_bind.AttackModule__set_add_reaction_frame_impl_app::BattleObjectModuleAccessor__int_float_bool,3,ID|Frames|Unk
-method.app::sv_animcmd.ATK_SET_SHIELD_SETOFF_MUL_lua_State,2,ID|ShieldHitstunMul
+method.app::sv_animcmd.ATK_SET_SHIELD_SETOFF_MUL_lua_State,2,ID|ShieldstunMul
 method.app::sv_animcmd.ATTACK_ABS_lua_State,16,Kind|ID|Damage|Angle|KBG|FKB|BKB|SDI|Hitlag|FacingRestrict|Unk|DisableHitlag|Effect|SFXLevel|SFXType|Type
 method.app::lua_bind.WorkModule__on_flag_impl_app::BattleObjectModuleAccessor__int,1,Flag
 method.app::lua_bind.WorkModule__off_flag_impl_app::BattleObjectModuleAccessor__int,1,Flag
@@ -11,3 +11,11 @@ method.app::lua_bind.AttackModule__clear_impl_app::BattleObjectModuleAccessor__i
 method.app::lua_bind.GrabModule__set_rebound_impl_app::BattleObjectModuleAccessor__bool,1,CanCatchRebound
 method.app::sv_animcmd.CATCH_lua_State,11,ID|Bone|Size|X|Y|Z|X2|Y2|Z2|Status|Ground/Air
 method.app::sv_animcmd.CATCH_lua_State,8,ID|Bone|Size|X|Y|Z|Status|Ground/Air
+method.app::lua_bind.FighterCutInManager__set_throw_finish_offset_impl_app::FighterCutInManager__phx::Vector3f,3,X|Y|Z
+method.app::lua_bind.AttackModule__set_poison_param_impl_app::BattleObjectModuleAccessor__int_int_int_float_bool,5,ID|Frames|Rehit|Damage|Unk
+method.app::lua_bind.FighterCutInManager__set_throw_finish_zoom_rate_impl_app::FighterCutInManager__float,1,ZoomRate
+method.app::sv_animcmd.ATK_SET_SHIELD_SETOFF_MUL_arg3_lua_State,3,ID1|ID2|ShieldstunMul
+method.app::sv_animcmd.ATK_SET_SHIELD_SETOFF_MUL_arg4_lua_State,3,ID1|ID2|ID3|ShieldstunMul
+method.app::sv_animcmd.ATK_SET_SHIELD_SETOFF_MUL_arg5_lua_State,3,ID1|ID2|ID3|ID4|ShieldstunMul
+method.app::sv_animcmd.SA_SET_lua_State,1,State
+method.app::sv_animcmd.FT_ADD_DAMAGE_lua_State,1,SelfDamage

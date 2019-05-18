@@ -66,7 +66,7 @@ class Function:
         self.address = address
 
     def print(self,depth):
-        s = ('\t' * depth) + '{0}( '.format(self.function)
+        s = ('\t' * depth) + '{0}('.format(self.function)
         fp = next((x for x in FunctionParam if x.function == self.function and x.length == len(self.params)), None)
         index = 0
         for param in self.params:
@@ -75,7 +75,7 @@ class Function:
             else:
                 s += '{0}, '.format(param.print(0))
             index += 1
-        s = s.strip(', ') + ' )\n'
+        s = s.strip(', ') + ')\n'
         return s
 
     def printCondition(self):
@@ -104,7 +104,7 @@ class Value:
             if isinstance(self.value, Function):
                 return self.value.print(0).strip()
             else:
-                return '{0}()'.format(self.value)
+                return '{0}'.format(self.value)
         elif self.type == 'hash40':
             return self.value.hash40
         elif self.type == 'int':
@@ -343,7 +343,10 @@ class SubScript:
                 self.Functions.append(Function(bl, self.Values, self.CurrentAddress))
             self.Values = []
             self.CurrentValue = 0
-
+        elif bl == 'method.lib::L2CValue.L2CValue_long':
+            self.CurrentValue = 0
+        elif bl == 'method.app::lua_bind.WorkModule__get_int64_impl_app::BattleObjectModuleAccessor__int':
+            self.CurrentValue = 0
         elif bl == 'method.lib::L2CAgent.pop_lua_stack_int':
             #self.Values.append(Value(self.CurrentValue, 'int'))
             #self.CurrentValue = 0

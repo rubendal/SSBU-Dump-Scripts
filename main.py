@@ -9,10 +9,11 @@ from scriptparser import Parser
 from util import adjustr2Output
 
 output = "output"
-testParser = False
+parserOutput = "parser"
+parseScripts = False
 
 def dump(file):
-    global output, testParser
+    global output, parseScripts, parserOutput
     print("Opening file {0}".format(file))
     filename = os.path.split(os.path.splitext(file)[0])[-1]
 
@@ -38,6 +39,13 @@ def dump(file):
         if not os.path.exists("{0}/{1}".format(output, filename)):
             os.makedirs("{0}/{1}".format(output, filename))
 
+        if parseScripts:
+            if not os.path.exists(parserOutput):
+                os.makedirs(parserOutput)
+        
+            if not os.path.exists("{0}/{1}".format(parserOutput, filename)):
+                os.makedirs("{0}/{1}".format(parserOutput, filename))
+
         if len(p.Issues) > 0:
             #Log missing scripts in file due to issues on parsing or radare2 output
             None
@@ -51,14 +59,10 @@ def dump(file):
 
             if not os.path.exists("{0}/{1}/{2}".format(output, filename, article.findHashValue())):
                 os.makedirs("{0}/{1}/{2}".format(output, filename, article.findHashValue()))
-            else:
-                #Remove previous dumped files (to prevent duplicates with code used for script filename)
-                shutil.rmtree("{0}/{1}/{2}".format(output, filename, article.findHashValue()))
-                os.makedirs("{0}/{1}/{2}".format(output, filename, article.findHashValue()))
-
-            if testParser:
-                if not os.path.exists("{0}/{1}/{2}/{3}".format(output, filename, article.findHashValue(),"parser")):
-                    os.makedirs("{0}/{1}/{2}/{3}".format(output, filename, article.findHashValue(),"parser"))
+                
+            if parseScripts:
+                if not os.path.exists("{0}/{1}/{2}".format(parserOutput, filename, article.findHashValue())):
+                    os.makedirs("{0}/{1}/{2}".format(parserOutput, filename, article.findHashValue()))
             
             for hash in article.scriptsHash:
                 scriptStart = adjustr2Output(r2.cmd('s {0};pd 20'.format(hash.getAddress())))
@@ -67,10 +71,10 @@ def dump(file):
                 if scriptAddress:
                     script = adjustr2Output(r2.cmd('s {0};aF;pdf'.format(hex(scriptAddress))))
 
-                    if testParser:
+                    if parseScripts:
                         try:
                             parser = Parser(r2, script, hash.findHashValue(), sections)
-                            pf = open('{0}/{1}/{2}/{3}/{4}.txt'.format(output, filename, article.findHashValue(), 'parser', hash.findHashValue()),'w')
+                            pf = open('{0}/{1}/{2}/{3}.txt'.format(parserOutput, filename, article.findHashValue(), hash.findHashValue()),'w')
                             pf.write(parser.Output())
                             pf.close()
                         except:
@@ -104,7 +108,7 @@ def Parse(file):
     p = Parser(None, t)
 
 def start(path, argv):
-    global output, testParser
+    global output, parseScripts
     try:
       opts, args = getopt.getopt(argv,"o:p",["output="])
     except getopt.GetoptError:
@@ -116,7 +120,7 @@ def start(path, argv):
         if opt == '-o':
             output = arg
         if opt == '-p':
-            testParser = True
+            parseScripts = True
 
     run = False
 
