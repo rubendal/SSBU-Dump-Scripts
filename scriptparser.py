@@ -66,8 +66,11 @@ class Function:
         self.address = address
 
     def print(self,depth):
-        s = ('\t' * depth) + '{0}('.format(self.function)
-        fp = next((x for x in FunctionParam if x.function == self.function and x.length == len(self.params)), None)
+        functionName = self.function.split('_lua')[0].split('_impl')[0].split('_void')[0]
+        if 'method.' in functionName:
+            functionName = functionName.split('.')[2]
+        s = ('\t' * depth) + '{0}('.format(functionName)
+        fp = next((x for x in FunctionParam if x.function == functionName and x.length == len(self.params)), None)
         index = 0
         for param in self.params:
             if fp:
@@ -79,11 +82,18 @@ class Function:
         return s
 
     def printCondition(self):
-        s = '{0}('.format(self.function)
-        for param in self.params:
-            s += '{0}, '.format(param.print(0))
-        s = s.strip(', ') + ')'
-        return s
+        if self.function == 'method.lib::L2CValue.operatorbool__const':
+            s = ''
+            for param in self.params:
+                s += '{0}, '.format(param.print(0))
+            s = s.strip(', ')
+            return s
+        else:
+            s = '{0}('.format(self.function)
+            for param in self.params:
+                s += '{0}, '.format(param.print(0))
+            s = s.strip(', ') + ')'
+            return s
 
 class Value:
     def __init__(self, value, vtype):
@@ -104,9 +114,12 @@ class Value:
             if isinstance(self.value, Function):
                 return self.value.print(0).strip()
             else:
-                return '{0}'.format(self.value)
+                functionName = self.value.split('_lua')[0].split('_impl')[0].split('_void')[0]
+                if 'method.' in functionName:
+                    functionName = functionName.split('.')[2]
+                return '{0}'.format(functionName)
         elif self.type == 'hash40':
-            return self.value.hash40
+            return self.value.getLabel()
         elif self.type == 'int':
             return int(self.value)
         else:

@@ -1,5 +1,16 @@
 import zlib
 
+class HashLabel:
+    def __init__(self, hash40, label):
+        self.hash40 = hash40
+        self.label = label
+
+HashLabels = []
+file = open('ParamLabels.csv','r')
+for s in file:
+    r = s.split(',')
+    HashLabels.append(HashLabel(r[0],r[1].strip()))
+
 class Hash40:
     def __init__(self, hash40, tag = None):
         self.hash40 = hash40
@@ -9,6 +20,13 @@ class Hash40:
 
         if(len(self.hash40.replace('0x', '')) < 10):
             self.hash40 = '0x' + ('0' * (10 - len(self.hash40.replace('0x', '')))) + self.hash40.replace('0x', '')
+
+    def getLabel(self):
+        find = next((x for x in HashLabels if x.hash40 == self.hash40), None)
+        if find:
+            if find.label != '':
+                return find.label
+        return self.hash40
 
     @staticmethod
     def Create(hash, length):
