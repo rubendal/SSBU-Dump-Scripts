@@ -23,3 +23,5 @@ FT_MOTION_RATE,1,FSM
 AttackModule__set_ink_value,2,ID|Ink
 AttackModule__set_target_category,2,ID|Hitbits
 AttackModule__set_size,2,ID|Size
+ATTACK_IGNORE_THROW,33,ID|Part|Bone|Damage|Angle|KBG|FKB|BKB|Size|X|Y|Z|Hitlag|SDI|Clang/Rebound|FacingRestrict|SetWeight|ShieldDamage|Trip|Rehit|Reflectable|Absorbable|Flinchless|DisableHitlag|Direct/Indirect|Ground/Air|Hitbits|CollisionPart|FriendlyFire|Effect|SFXLevel|SFXType|Type
+ATTACK_IGNORE_THROW,36,ID|Part|Bone|Damage|Angle|KBG|FKB|BKB|Size|X|Y|Z|X2|Y2|Z2|Hitlag|SDI|Clang/Rebound|FacingRestrict|SetWeight|ShieldDamage|Trip|Rehit|Reflectable|Absorbable|Flinchless|DisableHitlag|Direct/Indirect|Ground/Air|Hitbits|CollisionPart|FriendlyFire|Effect|SFXLevel|SFXType|Type

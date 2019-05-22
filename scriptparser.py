@@ -187,6 +187,19 @@ class SubScript:
             self.Registers.append(Register(p, v))
         self.CurrentValue = v
 
+    def parse_movn(self, movn):
+        p = movn.split(',')[0]
+        h = movn.split(',')[1]
+        if h == 'wzr':
+            h = '0x0'
+        v = ctypes.c_int32(int(h, 16)).value
+        register = next((x for x in self.Registers if x.register == p), None)
+        if register:
+            register.value = (v * -1)
+        else:
+            self.Registers.append(Register(p, v))
+        self.CurrentValue = (v * -1)
+
     def parse_movk(self, movk):
         p = movk.split(',')[0]
         h = movk.split(',')[1].strip()
@@ -594,6 +607,8 @@ class SubScript:
                 self.parse_movk(val)
             elif op == 'mov':
                 self.parse_mov(val)
+            elif op == 'movn':
+                self.parse_movn(val)
             elif op == 'cmp':
                 self.parse_cmp(val)
             elif op == 'adrp':
