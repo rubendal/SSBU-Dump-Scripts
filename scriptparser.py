@@ -37,9 +37,32 @@ class Block:
         self.Functions = []
         self.branch = branch
         self.address = address
+        self.ElseBlock = None
 
     def print(self,depth):
-        s = ('\t' * depth) + 'if(' + self.condition.printCondition() +'){\n'
+        if isinstance(self.condition, Function):
+            s = ('\t' * depth) + 'if(' + self.condition.printCondition() +'){\n'
+            for function in self.Functions:
+                s += '{0}'.format(function.print(depth+1))
+            s+= ('\t' * depth) + '}\n'
+            if self.ElseBlock:
+                s += self.ElseBlock.print(depth)
+        else:
+            
+            s = self.condition.print(depth)
+            for function in self.Functions:
+                s += '{0}'.format(function.print(depth+1))
+            s+= ('\t' * depth) + '}\n'
+        return s
+
+class ElseBlock:
+    def __init__(self, branch, address = 0):
+        self.Functions = []
+        self.branch = branch
+        self.address = address
+
+    def print(self,depth):
+        s = ('\t' * depth) + 'else{\n'
         for function in self.Functions:
             s += '{0}'.format(function.print(depth+1))
         s+= ('\t' * depth) + '}\n'
@@ -195,10 +218,10 @@ class SubScript:
         v = ctypes.c_int32(int(h, 16)).value
         register = next((x for x in self.Registers if x.register == p), None)
         if register:
-            register.value = (v * -1)
+            register.value = (v * -1) - 1
         else:
             self.Registers.append(Register(p, v))
-        self.CurrentValue = (v * -1)
+        self.CurrentValue = (v * -1) - 1
 
     def parse_movk(self, movk):
         p = movk.split(',')[0]
@@ -306,12 +329,16 @@ class SubScript:
     def parse_b(self, b):
         if b == 'method.app::sv_animcmd.ATTACK_lua_State' or b == 'method.app::sv_animcmd.ATTACK_ABS_lua_State' or b == 'method.app::sv_animcmd.SEARCH_lua_State':
             if self.CurrentBlock:
-                self.CurrentBlock.Functions.append(Function(b, self.PrevStack, self.CurrentAddress))
+                if self.CurrentBlock.ElseBlock:
+                    self.CurrentBlock.ElseBlock.Functions.append(Function(b, self.PrevStack, self.CurrentAddress))
+                else:
+                    self.CurrentBlock.Functions.append(Function(b, self.PrevStack, self.CurrentAddress))
             else:
                 self.Functions.append(Function(b, self.PrevStack, self.CurrentAddress))
             self.PrevStack = []
-        elif '0x' in b or 'fcn.' in b:
-            None
+        elif '0x' in b:
+            if self.CurrentBlock:
+                self.CurrentBlock.ElseBlock = ElseBlock(int(b, 16), self.CurrentAddress)
         else:
             #print('Function on b: {0}'.format(b))
             None
@@ -320,7 +347,10 @@ class SubScript:
         register = next((x for x in self.Registers if x.register == br), None)
         if register:
             if self.CurrentBlock:
-                self.CurrentBlock.Functions.append(Function(hex(register.value), self.Values, self.CurrentAddress))
+                if self.CurrentBlock.ElseBlock:
+                    self.CurrentBlock.ElseBlock.Functions.append(Function(hex(register.value), self.Values, self.CurrentAddress))
+                else:
+                    self.CurrentBlock.Functions.append(Function(hex(register.value), self.Values, self.CurrentAddress))
             else:
                 self.Functions.append(Function(hex(register.value), self.Values, self.CurrentAddress))
         self.Values = []
@@ -366,7 +396,10 @@ class SubScript:
             self.Values.append(Value('method.app::sv_animcmd.is_excute_lua_State', 'function'))
         elif bl == 'method.lib::L2CValue.operatorbool__const':
             if self.CurrentBlock:
-                self.CurrentBlock.Functions.append(Function(bl, self.Values, self.CurrentAddress))
+                if self.CurrentBlock.ElseBlock:
+                    self.CurrentBlock.ElseBlock.Functions.append(Function(bl, self.Values, self.CurrentAddress))
+                else:
+                    self.CurrentBlock.Functions.append(Function(bl, self.Values, self.CurrentAddress))
             else:
                 self.Functions.append(Function(bl, self.Values, self.CurrentAddress))
             self.Values = []
@@ -407,13 +440,19 @@ class SubScript:
         else:
             if len(self.Values) > 0:
                 if self.CurrentBlock:
-                    self.CurrentBlock.Functions.append(Function(bl, self.Values, self.CurrentAddress))
+                    if self.CurrentBlock.ElseBlock:
+                        self.CurrentBlock.ElseBlock.Functions.append(Function(bl, self.Values, self.CurrentAddress))
+                    else:
+                        self.CurrentBlock.Functions.append(Function(bl, self.Values, self.CurrentAddress))
                 else:
                     self.Functions.append(Function(bl, self.Values, self.CurrentAddress))
                 self.Values = []
             else:
                 if self.CurrentBlock:
-                    self.CurrentBlock.Functions.append(Function(bl, self.PrevStack, self.CurrentAddress))
+                    if self.CurrentBlock.ElseBlock:
+                        self.CurrentBlock.ElseBlock.Functions.append(Function(bl, self.PrevStack, self.CurrentAddress))
+                    else:
+                        self.CurrentBlock.Functions.append(Function(bl, self.PrevStack, self.CurrentAddress))
                 else:
                     self.Functions.append(Function(bl, self.PrevStack, self.CurrentAddress))
                 self.PrevStack = []
@@ -427,7 +466,10 @@ class SubScript:
     def parse_tbz(self, tbz):
         op = None
         if self.CurrentBlock:
-            op = self.CurrentBlock.Functions.pop()
+            if self.CurrentBlock.ElseBlock:
+                op = self.CurrentBlock.ElseBlock.Functions.pop()
+            else:
+                op = self.CurrentBlock.Functions.pop()
         else:
             op = self.Functions.pop()
         block = Block(op, int(tbz.split(',')[2].strip(), 16), self.CurrentAddress)
@@ -578,14 +620,20 @@ class SubScript:
                 self.Values = self.SubScript.Values
 
                 if self.CurrentBlock:
-                    self.CurrentBlock.Functions.extend(self.SubScript.Functions)
+                    if self.CurrentBlock.ElseBlock:
+                        self.CurrentBlock.ElseBlock.Functions.extend(self.SubScript.Functions)
+                    else:
+                        self.CurrentBlock.Functions.extend(self.SubScript.Functions)
                 else:
                     self.Functions.extend(self.SubScript.Functions)
 
                 self.SubScript = None
 
             if self.CurrentBlock:
-                if int(address,16) == self.CurrentBlock.branch:
+                branch = self.CurrentBlock.branch
+                if self.CurrentBlock.ElseBlock:
+                    branch = self.CurrentBlock.ElseBlock.branch
+                if int(address,16) == branch:
                     if len(self.Blocks) == 0:
                         self.Functions.append(self.CurrentBlock)
                         self.CurrentBlock = None
@@ -593,8 +641,14 @@ class SubScript:
                         while len(self.Blocks) > 0:
                             block = self.CurrentBlock
                             self.CurrentBlock = self.Blocks.pop()
-                            self.CurrentBlock.Functions.append(block)
-                            if int(address,16) != self.CurrentBlock.branch:
+                            if self.CurrentBlock.ElseBlock:
+                                self.CurrentBlock.ElseBlock.Functions.append(block)
+                            else:
+                                self.CurrentBlock.Functions.append(block)
+                            branch = self.CurrentBlock.branch
+                            if self.CurrentBlock.ElseBlock:
+                                branch = self.CurrentBlock.ElseBlock.branch
+                            if int(address,16) < branch:
                                 break
                         if len(self.Blocks) == 0:
                             self.Functions.append(self.CurrentBlock)

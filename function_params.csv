@@ -4,7 +4,7 @@ ATTACK,33,ID|Part|Bone|Damage|Angle|KBG|FKB|BKB|Size|X|Y|Z|Hitlag|SDI|Clang/Rebo
 ATTACK,36,ID|Part|Bone|Damage|Angle|KBG|FKB|BKB|Size|X|Y|Z|X2|Y2|Z2|Hitlag|SDI|Clang/Rebound|FacingRestrict|SetWeight|ShieldDamage|Trip|Rehit|Reflectable|Absorbable|Flinchless|DisableHitlag|Direct/Indirect|Ground/Air|Hitbits|CollisionPart|FriendlyFire|Effect|SFXLevel|SFXType|Type
 AttackModule__set_add_reaction_frame,3,ID|Frames|Unk
 ATK_SET_SHIELD_SETOFF_MUL,2,ID|ShieldstunMul
-ATTACK_ABS,16,Kind|ID|Damage|Angle|KBG|FKB|BKB|SDI|Hitlag|FacingRestrict|Unk|DisableHitlag|Effect|SFXLevel|SFXType|Type
+ATTACK_ABS,16,Kind|ID|Damage|Angle|KBG|FKB|BKB|Hitlag|Unk|FacingRestrict|Unk|Unk|Effect|SFXLevel|SFXType|Type
 WorkModule__on_flag,1,Flag
 WorkModule__off_flag,1,Flag
 AttackModule__clear,1,ID
