@@ -29,7 +29,7 @@ def dump(file):
 
         af = adjustr2Output(r2.cmd('s {0};af;pdf'.format(game.getAddress())))
         
-        p = ParseAnimcmdList(af, sections)
+        p = ParseAnimcmdList(r2, af, sections)
 
         print("Scripts extracted") #, {0} articles found .format(len(p.ArticleScripts))
 
