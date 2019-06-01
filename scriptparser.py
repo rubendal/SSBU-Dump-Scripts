@@ -9,7 +9,7 @@ class Constant:
 
 Constants = []
 ci = 1
-cfile = open('const_value_table.csv', 'r')
+cfile = open('const_value_table_3.1.0.csv', 'r')
 for s in cfile:
     Constants.append(Constant(ci, s.split(',')[1].strip()))
     ci += 1
@@ -301,6 +301,7 @@ class SubScript:
             register.value = v
         else:
             self.Registers.append(Register(p, v))
+        self.CurrentValue = v
 
     def parse_add(self, add):
         p = add.split(',')[0].strip()
@@ -520,14 +521,43 @@ class SubScript:
             if 'x' in p:
                 format = 'i'
             v = 0
+            pr = ''
             if len(ldr.split(',')) < 3:
-                return None
-            if ldr.split(',')[2].replace(']','').strip()[0] == 'x':
-                rn = next((x for x in self.Registers if x.register == ldr.split(',')[2].replace(']','').strip()), None)
-                if rn:
-                    v = rn.value
+                pr = r.replace(']','')
             else:
-                v = ctypes.c_int32(int(ldr.split(',')[2].replace(']','').replace('!','').strip(), 16)).value
+                pr = ldr.split(',')[2].replace(']','').strip()
+
+            if pr == 'sp':
+                return None
+
+            if '::' in pr: #Symbol
+                #Look in section table
+                try:
+                    f = pr.split(':')[2].replace('_phx','').replace('_lib','').replace('_void','')
+                    find = next((x for x in self.Sections if '::' in x.function and x.function.split(':')[2].split('(')[0] == f), None)
+                    if find:
+                        v = find.num + self.CurrentValue
+                        v = adjustr2Output(self.r2.cmd('s {0};pf {1}'.format(hex(v), format)))
+                        if format == 'f':
+                            v = float(v.split('=')[1].strip())
+                        else:
+                            v = ctypes.c_int32(int(v.split('=')[1].strip())).value
+                        register2 = next((x for x in self.Registers if x.register == p or x.register == p.replace('x', 'w')), None)
+                        if register2:
+                            register2.value = v
+                        else:
+                            self.Registers.append(Register(p, v))
+                        self.CurrentValue = v
+                        return None
+                except:
+                    return None
+            else:
+                if pr[0] == 'x':
+                    rn = next((x for x in self.Registers if x.register == pr), None)
+                    if rn:
+                        v = rn.value
+                else:
+                    v = ctypes.c_int32(int(pr.replace('!','').strip(), 16)).value
             register = next((x for x in self.Registers if x.register == r), None)
             if register:
                 register.value += v
