@@ -7,10 +7,13 @@ from parseAnimcmdList import ParseAnimcmdList
 from parseAnimcmdStart import ParseAnimcmdStart
 from scriptparser import Parser
 from util import adjustr2Output
+from constants import InitializeConstants
 
 output = "output"
-parserOutput = "parser"
+parserOutput = "parser_3.1.0"
+version = '3.1.0'
 parseScripts = False
+startFrom = None
 
 def dump(file):
     global output, parseScripts, parserOutput
@@ -71,14 +74,7 @@ def dump(file):
                 if scriptAddress:
                     script = adjustr2Output(r2.cmd('s {0};aF;pdf'.format(hex(scriptAddress))))
 
-                    if parseScripts:
-                        try:
-                            parser = Parser(r2, script, hash.findHashValue(), sections)
-                            pf = open('{0}/{1}/{2}/{3}.txt'.format(parserOutput, filename, article.findHashValue(), hash.findHashValue()),'w')
-                            pf.write(parser.Output())
-                            pf.close()
-                        except:
-                            print("Couldn't parse {0}".format(hash.findHashValue()))
+                    ps = script
 
                     script = script.replace('\r', '')
                     #exists = os.path.exists("{0}/{1}/{2}/{3}.txt".format(output, filename, article.findHashValue(), hash.findHashValue()))
@@ -95,6 +91,16 @@ def dump(file):
                     #            f.write(script)
                     #            f.close()
                     #        v += 1
+                    
+
+                    if parseScripts:
+                        try:
+                            parser = Parser(r2, ps, hash.findHashValue(), sections)
+                            pf = open('{0}/{1}/{2}/{3}.txt'.format(parserOutput, filename, article.findHashValue(), hash.findHashValue()),'w')
+                            pf.write(parser.Output())
+                            pf.close()
+                        except:
+                            print("Couldn't parse {0}".format(hash.findHashValue()))
 
     else:
         print('animcmd_game not found on file {0}'.format(file))
@@ -108,10 +114,11 @@ def Parse(file):
     p = Parser(None, t)
 
 def start(path, argv):
-    global output, parseScripts
+    global output, parseScripts, version, startFrom
     try:
-      opts, args = getopt.getopt(argv,"o:p",["output="])
+      opts, args = getopt.getopt(argv,"s:v:o:p",["output="])
     except getopt.GetoptError:
+        print(getopt.GetoptError.msg)
         print('main.py path')
         print("file path: dump scripts from elf file")
         print("directory path: dump all scripts from elf files found on directory")
@@ -121,14 +128,28 @@ def start(path, argv):
             output = arg
         if opt == '-p':
             parseScripts = True
+        if opt == '-v':
+            version = arg
+        if opt == '-s':
+            startFrom = arg
 
     run = False
+
+    InitializeConstants(version)
+    parserOutput = "parser_" + version
 
     if os.path.isdir(path):
         for file in os.listdir(path):
             if os.path.splitext(file)[1] == ".elf": 
-                run = True
-                dump(os.path.join(path,file))
+                if not startFrom:
+                    run = True
+                    dump(os.path.join(path,file))
+                else:
+                    if os.path.splitext(os.path.basename(file))[0].split('_')[0] == startFrom:
+                        run = True
+                        dump(os.path.join(path,file))
+                        startFrom = None
+                        
     elif os.path.isfile(path):
         ext = os.path.splitext(path)
         if os.path.splitext(path)[1] == ".elf":

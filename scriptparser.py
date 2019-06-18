@@ -1,18 +1,7 @@
 import re, ctypes
 from hash40 import Hash40
 from util import adjustr2Output
-
-class Constant:
-    def __init__(self, index, name):
-        self.index = index
-        self.name = name
-
-Constants = []
-ci = 1
-cfile = open('const_value_table_3.1.0.csv', 'r')
-for s in cfile:
-    Constants.append(Constant(ci, s.split(',')[1].strip()))
-    ci += 1
+from constants import Constants
 
 class FunctionParams:
     def __init__(self, function, length, params):
@@ -89,10 +78,18 @@ class Function:
         self.address = address
 
     def print(self,depth):
-        functionName = self.function.split('_lua')[0].split('_impl')[0].split('_void')[0]
-        if 'method.' in functionName:
-            functionName = functionName.split('.')[2]
-        s = ('\t' * depth) + '{0}('.format(functionName)
+        if self.function == 'method.lib::L2CValue.operator___lib::L2CValueconst__const':
+            functionName = self.function.split('_lua')[0].split('_impl')[0].split('_void')[0]
+            if 'method.' in functionName:
+                functionName = functionName.split('.')[2]
+            s = ('\t' * depth)
+        else:
+            functionName = self.function.split('_lua')[0].split('_impl')[0].split('_void')[0]
+            if 'method.' in functionName:
+                functionName = functionName.split('.')[2]
+            if '0x' in functionName:
+                functionName = 'NRO:{0}'.format(functionName)
+            s = ('\t' * depth) + '{0}('.format(functionName)
         fp = next((x for x in FunctionParam if x.function == functionName and x.length == len(self.params)), None)
         index = 0
         for param in self.params:
@@ -101,7 +98,10 @@ class Function:
             else:
                 s += '{0}, '.format(param.print(0))
             index += 1
-        s = s.strip(', ') + ')\n'
+        if self.function == 'method.lib::L2CValue.operator___lib::L2CValueconst__const':
+            s = s.strip(', ') + '\n'
+        else:
+            s = s.strip(', ') + ')\n'
         return s
 
     def printCondition(self):
@@ -112,7 +112,12 @@ class Function:
             s = s.strip(', ')
             return s
         else:
-            s = '{0}('.format(self.function)
+            functionName = self.function.split('_lua')[0].split('_impl')[0].split('_void')[0]
+            if 'method.' in functionName:
+                functionName = functionName.split('.')[2]
+            if '0x' in functionName:
+                functionName = 'NRO:{0}'.format(functionName)
+            s = '{0}('.format(functionName)
             for param in self.params:
                 s += '{0}, '.format(param.print(0))
             s = s.strip(', ') + ')'
@@ -127,6 +132,8 @@ class Value:
         if self.type == 'intC':
             if isinstance(self.value, int):
                 self.value = str(self.value)
+            if '0x' in self.value:
+                self.value = 'Constant({0})'.format(self.value)
             return self.value.replace('"','')
         elif self.type == 'bool':
             if self.value == 1:
@@ -409,6 +416,29 @@ class SubScript:
             l = self.Values
             self.Values = []
             self.Values.append(Value(Function(bl, l, self.CurrentAddress), 'function'))
+        elif bl == 'method.lib::L2CValue.operator___lib::L2CValueconst__const':
+            l = self.Values
+            self.Values = []
+            self.Values.append(Value(Function(bl, l, self.CurrentAddress), 'function'))
+            function = None
+            if self.CurrentBlock:
+                if self.CurrentBlock.ElseBlock:
+                    function = self.CurrentBlock.ElseBlock.Functions.pop()
+                    function.params.extend(self.Values)
+                    self.CurrentBlock.ElseBlock.Functions.append(function)
+                else:
+                    function = self.CurrentBlock.Functions.pop()
+                    function.params.extend(self.Values)
+                    self.CurrentBlock.Functions.append(function)
+                    
+            else:
+                function = self.Functions.pop()
+                function.params.extend(self.Values)
+                self.Functions.append(function)
+            self.Values = []
+            self.CurrentValue = 0
+            
+            
         elif bl == 'method.lib::L2CValue.L2CValue_long':
             self.CurrentValue = 0
         elif bl == 'method.app::lua_bind.WorkModule__get_int64_impl_app::BattleObjectModuleAccessor__int':
@@ -457,6 +487,7 @@ class SubScript:
                 else:
                     self.Functions.append(Function(bl, self.PrevStack, self.CurrentAddress))
                 self.PrevStack = []
+            self.CurrentValue = 0 #Testing
         
     def parse_b_le(self, b_le):
         None
@@ -511,7 +542,7 @@ class SubScript:
                 if constant.name != '':
                     self.CurrentValue = constant.name
                 else:
-                    self.CurrentValue = v
+                    self.CurrentValue = constant.hash #v
             else:
                 self.CurrentValue = v
             self.isConstant = True
