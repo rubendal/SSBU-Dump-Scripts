@@ -10,13 +10,14 @@ from util import adjustr2Output
 from constants import InitializeConstants
 
 output = "output"
-parserOutput = "parser_3.1.0"
+parserOutput = "parser_"
 version = '3.1.0'
 parseScripts = False
 startFrom = None
+dumpOutput = False
 
 def dump(file):
-    global output, parseScripts, parserOutput
+    global output, parseScripts, parserOutput, dumpOutput
     print("Opening file {0}".format(file))
     filename = os.path.split(os.path.splitext(file)[0])[-1]
 
@@ -76,21 +77,22 @@ def dump(file):
 
                     ps = script
 
-                    script = script.replace('\r', '')
-                    #exists = os.path.exists("{0}/{1}/{2}/{3}.txt".format(output, filename, article.findHashValue(), hash.findHashValue()))
-                    #if not exists:
-                    f = open("{0}/{1}/{2}/{3}.txt".format(output, filename, article.findHashValue(), hash.findHashValue()), "w")
-                    f.write(script)
-                    f.close()
-                    #else:
-                    #    v = 2
-                    #    while exists:
-                    #        exists = os.path.exists("{0}/{1}/{2}/{3} ({4}).txt".format(output, filename, article.findHashValue(), hash.findHashValue(), v))
-                    #        if not exists:
-                    #            f = open("{0}/{1}/{2}/{3} ({4}).txt".format(output, filename, article.findHashValue(), hash.findHashValue(), v), "w")
-                    #            f.write(script)
-                    #            f.close()
-                    #        v += 1
+                    if dumpOutput:
+                        script = script.replace('\r', '')
+                        #exists = os.path.exists("{0}/{1}/{2}/{3}.txt".format(output, filename, article.findHashValue(), hash.findHashValue()))
+                        #if not exists:
+                        f = open("{0}/{1}/{2}/{3}.txt".format(output, filename, article.findHashValue(), hash.findHashValue()), "w")
+                        f.write(script)
+                        f.close()
+                        #else:
+                        #    v = 2
+                        #    while exists:
+                        #        exists = os.path.exists("{0}/{1}/{2}/{3} ({4}).txt".format(output, filename, article.findHashValue(), hash.findHashValue(), v))
+                        #        if not exists:
+                        #            f = open("{0}/{1}/{2}/{3} ({4}).txt".format(output, filename, article.findHashValue(), hash.findHashValue(), v), "w")
+                        #            f.write(script)
+                        #            f.close()
+                        #        v += 1
                     
 
                     if parseScripts:

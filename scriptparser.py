@@ -88,6 +88,7 @@ class Function:
             if 'method.' in functionName:
                 functionName = functionName.split('.')[2]
             if '0x' in functionName:
+                
                 functionName = 'NRO:{0}'.format(functionName)
             s = ('\t' * depth) + '{0}('.format(functionName)
         fp = next((x for x in FunctionParam if x.function == functionName and x.length == len(self.params)), None)
@@ -389,6 +390,9 @@ class SubScript:
                 self.CurrentValue = 0
         elif bl == 'method.lib::L2CValue.L2CValue_float':
             if isinstance(self.CurrentValue,Value):
+                if self.CurrentValue.type == 'function':
+                    self.CurrentValue = 0
+                    return
                 self.CurrentValue = self.CurrentValue.value
             self.Values.append(Value(self.CurrentValue, 'float'))
             self.CurrentValue = 0
@@ -412,10 +416,24 @@ class SubScript:
                 self.Functions.append(Function(bl, self.Values, self.CurrentAddress))
             self.Values = []
             self.CurrentValue = 0
-        elif bl == 'method.app::lua_bind.WorkModule__is_flag_impl_app::BattleObjectModuleAccessor__int':
+        #elif bl == 'method.app::lua_bind.WorkModule__is_flag_impl_app::BattleObjectModuleAccessor__int'
+        #    l = self.Values
+        #    self.Values = []
+        #    self.Values.append(Value(Function(bl, l, self.CurrentAddress), 'function'))
+        elif bl == 'method.app::sv_animcmd.get_value_float_lua_State__int': #bl == 'method.app::lua_bind.WorkModule__is_flag_impl_app::BattleObjectModuleAccessor__int'
+            if isinstance(self.CurrentValue,Value):
+                self.CurrentValue = self.CurrentValue.value
+            if self.isConstant:
+                self.Values.append(Value(self.CurrentValue, 'intC'))
+                self.CurrentValue = 0
+                self.isConstant = False
+            else:
+                self.Values.append(Value(self.CurrentValue, 'int'))
+                self.CurrentValue = 0
             l = self.Values
             self.Values = []
             self.Values.append(Value(Function(bl, l, self.CurrentAddress), 'function'))
+            self.CurrentValue = Value(Function(bl, l, self.CurrentAddress), 'function')
         elif bl == 'method.lib::L2CValue.operator___lib::L2CValueconst__const':
             l = self.Values
             self.Values = []
@@ -441,8 +459,8 @@ class SubScript:
             
         elif bl == 'method.lib::L2CValue.L2CValue_long':
             self.CurrentValue = 0
-        elif bl == 'method.app::lua_bind.WorkModule__get_int64_impl_app::BattleObjectModuleAccessor__int':
-            self.CurrentValue = 0
+        #elif bl == 'method.app::lua_bind.WorkModule__get_int64_impl_app::BattleObjectModuleAccessor__int':
+        #    self.CurrentValue = 0
         elif bl == 'method.lib::L2CAgent.pop_lua_stack_int':
             #self.Values.append(Value(self.CurrentValue, 'int'))
             #self.CurrentValue = 0
