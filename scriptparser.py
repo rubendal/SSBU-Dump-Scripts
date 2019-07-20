@@ -1,7 +1,11 @@
-import re, ctypes
+import re
+import ctypes
 from hash40 import Hash40
 from util import adjustr2Output
-from constants import Constants
+from constants import Constants, Constant
+
+from registers import Registers
+
 
 class FunctionParams:
     def __init__(self, function, length, params):
@@ -9,88 +13,79 @@ class FunctionParams:
         self.length = int(length)
         self.params = params.split('|')
 
+
 FunctionParam = []
-fpfile = open('function_params.csv','r')
+fpfile = open('function_params.csv', 'r')
 for s in fpfile:
     r = s.split(',')
-    FunctionParam.append(FunctionParams(r[0],r[1],r[2].strip()))
-    
-class Register:
-    def __init__(self, register, value):
-        self.register = register
-        self.value = value
+    FunctionParam.append(FunctionParams(r[0], r[1], r[2].strip()))
+
 
 class Block:
-    def __init__(self, condition, branch, address = 0):
+    def __init__(self, condition, branch, address=0):
         self.condition = condition
         self.Functions = []
         self.branch = branch
         self.address = address
         self.ElseBlock = None
 
-    def print(self,depth):
+    def print(self, depth):
         if isinstance(self.condition, Function):
-            s = ('\t' * depth) + 'if(' + self.condition.printCondition() +'){\n'
+            s = ('\t' * depth) + 'if(' + self.condition.printCondition() + '){\n'
             for function in self.Functions:
                 s += '{0}'.format(function.print(depth+1))
-            s+= ('\t' * depth) + '}\n'
+            s += ('\t' * depth) + '}\n'
             if self.ElseBlock:
                 s += self.ElseBlock.print(depth)
         else:
-            
+
             s = self.condition.print(depth)
             for function in self.Functions:
                 s += '{0}'.format(function.print(depth+1))
-            s+= ('\t' * depth) + '}\n'
+            s += ('\t' * depth) + '}\n'
         return s
 
+
 class ElseBlock:
-    def __init__(self, branch, address = 0):
+    def __init__(self, branch, address=0):
         self.Functions = []
         self.branch = branch
         self.address = address
 
-    def print(self,depth):
+    def print(self, depth):
         s = ('\t' * depth) + 'else{\n'
         for function in self.Functions:
             s += '{0}'.format(function.print(depth+1))
-        s+= ('\t' * depth) + '}\n'
+        s += ('\t' * depth) + '}\n'
         return s
 
+
 class Loop:
-    def __init__(self, iterator, functions, branch, address = 0):
+    def __init__(self, iterator, functions, branch, address=0):
         self.iterator = iterator
         self.Functions = functions
         self.branch = branch
         self.address = address
 
-    def print(self,depth):
+    def print(self, depth):
         s = ('\t' * depth) + 'for(' + self.iterator.iteratorPrint() + ' Iterations){\n'
         for function in self.Functions:
             s += '{0}'.format(function.print(depth + 1))
-        s+= ('\t' * depth) + '}\n'
+        s += ('\t' * depth) + '}\n'
         return s
 
+
 class Function:
-    def __init__(self, function, params, address = 0):
+    def __init__(self, function, params, address=0):
         self.function = function
         self.params = params
         self.address = address
 
-    def print(self,depth):
-        if self.function == 'method.lib::L2CValue.operator___lib::L2CValueconst__const':
-            functionName = self.function.split('_lua')[0].split('_impl')[0].split('_void')[0]
-            if 'method.' in functionName:
-                functionName = functionName.split('.')[2]
-            s = ('\t' * depth)
-        else:
-            functionName = self.function.split('_lua')[0].split('_impl')[0].split('_void')[0]
-            if 'method.' in functionName:
-                functionName = functionName.split('.')[2]
-            if '0x' in functionName:
-                
-                functionName = 'NRO:{0}'.format(functionName)
-            s = ('\t' * depth) + '{0}('.format(functionName)
+    def print(self, depth):
+        functionName = self.function.split('_lua')[0].split('_impl')[0].split('_void')[0]
+        if 'method.' in functionName:
+            functionName = functionName.split('.')[2]
+        s = ('\t' * depth) + '{0}('.format(functionName)
         fp = next((x for x in FunctionParam if x.function == functionName and x.length == len(self.params)), None)
         index = 0
         for param in self.params:
@@ -99,10 +94,7 @@ class Function:
             else:
                 s += '{0}, '.format(param.print(0))
             index += 1
-        if self.function == 'method.lib::L2CValue.operator___lib::L2CValueconst__const':
-            s = s.strip(', ') + '\n'
-        else:
-            s = s.strip(', ') + ')\n'
+        s = s.strip(', ') + ')\n'
         return s
 
     def printCondition(self):
@@ -113,29 +105,23 @@ class Function:
             s = s.strip(', ')
             return s
         else:
-            functionName = self.function.split('_lua')[0].split('_impl')[0].split('_void')[0]
-            if 'method.' in functionName:
-                functionName = functionName.split('.')[2]
-            if '0x' in functionName:
-                functionName = 'NRO:{0}'.format(functionName)
-            s = '{0}('.format(functionName)
+            s = '{0}('.format(self.function)
             for param in self.params:
                 s += '{0}, '.format(param.print(0))
             s = s.strip(', ') + ')'
             return s
+
 
 class Value:
     def __init__(self, value, vtype):
         self.value = value
         self.type = vtype
 
-    def print(self,depth):
+    def print(self, depth):
         if self.type == 'intC':
             if isinstance(self.value, int):
                 self.value = str(self.value)
-            if '0x' in self.value:
-                self.value = 'Constant({0})'.format(self.value)
-            return self.value.replace('"','')
+            return self.value.replace('"', '')
         elif self.type == 'bool':
             if self.value == 1:
                 return 'True'
@@ -159,9 +145,10 @@ class Value:
     def iteratorPrint(self):
         return str(self.value - 1)
 
+
 class SubScript:
-    def __init__(self, r2, script, sectionList = []):
-        self.r2 = r2 #Radare r2pipe
+    def __init__(self, r2, script, sectionList=[]):
+        self.r2 = r2  # Radare r2pipe
         self.script = script
         self.blocks = []
 
@@ -170,7 +157,8 @@ class SubScript:
         self.lines = []
         self.address = []
 
-        self.Registers = []
+        self.Registers = Registers()
+        self.Stack = LuaStack()
         self.Blocks = []
         self.CurrentBlock = None
         self.Functions = []
@@ -196,7 +184,8 @@ class SubScript:
                             if t:
                                 hasValue = t.group()
                         line = a[len(a)-1][1:]
-                        testStr = re.search("str\.([a-z]|[A-Z]|[0-9]|_)+", line) #Replace string for hex value
+                        # Replace string for hex value
+                        testStr = re.search("str\.([a-z]|[A-Z]|[0-9]|_)+", line)
                         if testStr:
                             line = line.replace(testStr.group(), hasValue)
                         self.lines.append(line)
@@ -211,11 +200,7 @@ class SubScript:
         if h == 'wzr':
             h = '0x0'
         v = ctypes.c_int32(int(h, 16)).value
-        register = next((x for x in self.Registers if x.register == p), None)
-        if register:
-            register.value = v
-        else:
-            self.Registers.append(Register(p, v))
+        self.Registers.Set(p, v)
         self.CurrentValue = v
 
     def parse_movn(self, movn):
@@ -224,11 +209,7 @@ class SubScript:
         if h == 'wzr':
             h = '0x0'
         v = ctypes.c_int32(int(h, 16)).value
-        register = next((x for x in self.Registers if x.register == p), None)
-        if register:
-            register.value = (v * -1) - 1
-        else:
-            self.Registers.append(Register(p, v))
+        self.Registers.Set(p, (v * -1) - 1)
         self.CurrentValue = (v * -1) - 1
 
     def parse_movk(self, movk):
@@ -240,13 +221,7 @@ class SubScript:
         if h != 0:
             bs = int(movk.split(',')[2].strip().replace('lsl', ''))
             v = v << bs
-        register = next((x for x in self.Registers if x.register == p), None)
-        if register:
-            register.value += v
-            self.CurrentValue = register.value
-        else:
-            self.Registers.append(Register(p, v))
-            self.CurrentValue = v
+        self.CurrentValue = self.Registers.SetAdd(p, v)
 
     def parse_mov(self, mov):
         p = mov.split(',')[0].strip()
@@ -254,43 +229,34 @@ class SubScript:
         if h == 'w0' or h == 'wzr':
             h = '0x0'
         if p == 'v0.16b':
-            #Float
-            h = 's' + h.split('.')[0].replace('v','')
-            register = next((x for x in self.Registers if x.register == h), None)
+            # Float
+            h = 's' + h.split('.')[0].replace('v', '')
+            register = self.Registers.Get(h)
             if register:
-                self.CurrentValue = register.value
+                self.CurrentValue = register
         else:
             try:
                 v = ctypes.c_int32(int(h, 16)).value
-                register = next((x for x in self.Registers if x.register == p), None)
-                if register:
-                    register.value = v
-                else:
-                    self.Registers.append(Register(p, v))
+                self.Registers.Set(p, v)
                 self.CurrentValue = v
             except:
-                #Register
-                r = next((x for x in self.Registers if x.register == h), None)
-                register = next((x for x in self.Registers if x.register == p), None)
+                # Register
+                r = self.Registers.Get(h)
+                register = self.Registers.Get(p)
                 if r:
-                    if register:
-                        register.value = r.value
-                    else:
-                        self.Registers.append(Register(p, r.value))
-                    self.CurrentValue = r.value
+                    self.Registers.Set(p, r)
+                    self.CurrentValue = r
                 else:
                     None
-                
-        
 
     def parse_cmp(self, cmp):
-        self.CurrentValue = int(cmp.split(',')[1].strip(),16)
+        self.CurrentValue = int(cmp.split(',')[1].strip(), 16)
 
     def parse_b_lo(self, b_lo):
-        address = int(b_lo,16)
+        address = int(b_lo, 16)
         index = 0
         for function in self.Functions:
-            if int(function.address,16) > address:
+            if int(function.address, 16) > address:
                 break
             index += 1
         l = self.Functions[index:]
@@ -300,15 +266,10 @@ class SubScript:
             self.Functions = []
         self.Functions.append(Loop(Value(self.CurrentValue, 'int'), l, address, self.CurrentAddress))
 
-
     def parse_adrp(self, adrp):
         p = adrp.split(',')[0].strip()
         v = int(adrp.split(',')[1], 16)
-        register = next((x for x in self.Registers if x.register == p), None)
-        if register:
-            register.value = v
-        else:
-            self.Registers.append(Register(p, v))
+        self.Registers.Set(p, v)
         self.CurrentValue = v
 
     def parse_add(self, add):
@@ -316,54 +277,51 @@ class SubScript:
         p2 = add.split(',')[1].strip()
         try:
             v = ctypes.c_int32(int(add.split(',')[2], 16)).value
-            register = next((x for x in self.Registers if x.register == p), None)
-            if register:
-                register.value += v
-            else:
-                self.Registers.append(Register(p, v))
+            self.Registers.SetAdd(p, v)
         except:
             try:
-                f = add.split(':')[2].replace('_phx','').replace('_lib','').replace('_void','')
+                f = add.split(':')[2].replace('_phx', '').replace('_lib', '').replace('_void', '')
                 find = next((x for x in self.Sections if '::' in x.function and x.function.split(':')[2].split('(')[0] == f), None)
                 if find:
                     v = find.num
-                    register = next((x for x in self.Registers if x.register == p), None)
-                    if register:
-                        register.value += v
-                    else:
-                        self.Registers.append(Register(p, v))
+                    self.Registers.SetAdd(p, v)
             except:
-                None #sp
-        
+                None  # sp
+                #self.Registers.SetAdd(p, v)
+
     def parse_b(self, b):
         if b == 'method.app::sv_animcmd.ATTACK_lua_State' or b == 'method.app::sv_animcmd.ATTACK_ABS_lua_State' or b == 'method.app::sv_animcmd.SEARCH_lua_State':
             if self.CurrentBlock:
                 if self.CurrentBlock.ElseBlock:
-                    self.CurrentBlock.ElseBlock.Functions.append(Function(b, self.PrevStack, self.CurrentAddress))
+                    self.CurrentBlock.ElseBlock.Functions.append(
+                        Function(b, self.PrevStack, self.CurrentAddress))
                 else:
-                    self.CurrentBlock.Functions.append(Function(b, self.PrevStack, self.CurrentAddress))
+                    self.CurrentBlock.Functions.append(
+                        Function(b, self.PrevStack, self.CurrentAddress))
             else:
-                self.Functions.append(Function(b, self.PrevStack, self.CurrentAddress))
+                self.Functions.append(
+                    Function(b, self.PrevStack, self.CurrentAddress))
             self.PrevStack = []
         elif '0x' in b:
             if self.CurrentBlock:
-                self.CurrentBlock.ElseBlock = ElseBlock(int(b, 16), self.CurrentAddress)
+                self.CurrentBlock.ElseBlock = ElseBlock(
+                    int(b, 16), self.CurrentAddress)
         else:
             #print('Function on b: {0}'.format(b))
             None
 
     def parse_br(self, br):
-        register = next((x for x in self.Registers if x.register == br), None)
+        register = self.Registers.Get(br)
         if register:
             if self.CurrentBlock:
                 if self.CurrentBlock.ElseBlock:
-                    self.CurrentBlock.ElseBlock.Functions.append(Function(hex(register.value), self.Values, self.CurrentAddress))
+                    self.CurrentBlock.ElseBlock.Functions.append(Function(hex(register), self.Values, self.CurrentAddress))
                 else:
-                    self.CurrentBlock.Functions.append(Function(hex(register.value), self.Values, self.CurrentAddress))
+                    self.CurrentBlock.Functions.append(Function(hex(register), self.Values, self.CurrentAddress))
             else:
-                self.Functions.append(Function(hex(register.value), self.Values, self.CurrentAddress))
+                self.Functions.append(Function(hex(register), self.Values, self.CurrentAddress))
         self.Values = []
-                
+
     def parse_b_ne(self, b_ne):
         None
 
@@ -372,14 +330,14 @@ class SubScript:
 
     def parse_bl(self, bl):
         if '0x' in bl or 'fcn.' in bl:
-            #Add subscript
+            # Add subscript
             if 'fcn.' in bl:
                 bl = bl.replace('fcn.', '0x')
             if self.r2:
-                script = adjustr2Output(self.r2.cmd('s {0};aF;pdf'.format(hex(int(bl,16)))))
+                script = adjustr2Output(self.r2.cmd('s {0};aF;pdf'.format(hex(int(bl, 16)))))
                 self.SubScript = SubScript(self.r2, script, self.Sections)
         elif bl == 'method.lib::L2CValue.L2CValue_int':
-            if isinstance(self.CurrentValue,Value):
+            if isinstance(self.CurrentValue, Value):
                 self.CurrentValue = self.CurrentValue.value
             if self.isConstant:
                 self.Values.append(Value(self.CurrentValue, 'intC'))
@@ -389,21 +347,18 @@ class SubScript:
                 self.Values.append(Value(self.CurrentValue, 'int'))
                 self.CurrentValue = 0
         elif bl == 'method.lib::L2CValue.L2CValue_float':
-            if isinstance(self.CurrentValue,Value):
-                if self.CurrentValue.type == 'function':
-                    self.CurrentValue = 0
-                    return
+            if isinstance(self.CurrentValue, Value):
                 self.CurrentValue = self.CurrentValue.value
             self.Values.append(Value(self.CurrentValue, 'float'))
             self.CurrentValue = 0
         elif bl == 'method.lib::L2CValue.L2CValue_bool':
-            if isinstance(self.CurrentValue,Value):
+            if isinstance(self.CurrentValue, Value):
                 self.CurrentValue = self.CurrentValue.value
             self.Values.append(Value(self.CurrentValue, 'bool'))
             self.CurrentValue = 0
         elif bl == 'method.lib::L2CValue.L2CValue_phx::Hash40':
-            register = next((x for x in self.Registers if x.register == "x1"), None)
-            self.Values.append(Value(Hash40(hex(register.value)), 'hash40'))
+            register = self.Registers.Get('x1')
+            self.Values.append(Value(Hash40(hex(register)), 'hash40'))
         elif bl == 'method.app::sv_animcmd.is_excute_lua_State':
             self.Values.append(Value('method.app::sv_animcmd.is_excute_lua_State', 'function'))
         elif bl == 'method.lib::L2CValue.operatorbool__const':
@@ -416,51 +371,14 @@ class SubScript:
                 self.Functions.append(Function(bl, self.Values, self.CurrentAddress))
             self.Values = []
             self.CurrentValue = 0
-        #elif bl == 'method.app::lua_bind.WorkModule__is_flag_impl_app::BattleObjectModuleAccessor__int'
-        #    l = self.Values
-        #    self.Values = []
-        #    self.Values.append(Value(Function(bl, l, self.CurrentAddress), 'function'))
-        elif bl == 'method.app::sv_animcmd.get_value_float_lua_State__int': #bl == 'method.app::lua_bind.WorkModule__is_flag_impl_app::BattleObjectModuleAccessor__int'
-            if isinstance(self.CurrentValue,Value):
-                self.CurrentValue = self.CurrentValue.value
-            if self.isConstant:
-                self.Values.append(Value(self.CurrentValue, 'intC'))
-                self.CurrentValue = 0
-                self.isConstant = False
-            else:
-                self.Values.append(Value(self.CurrentValue, 'int'))
-                self.CurrentValue = 0
+        elif bl == 'method.app::lua_bind.WorkModule__is_flag_impl_app::BattleObjectModuleAccessor__int':
             l = self.Values
             self.Values = []
             self.Values.append(Value(Function(bl, l, self.CurrentAddress), 'function'))
-            self.CurrentValue = Value(Function(bl, l, self.CurrentAddress), 'function')
-        elif bl == 'method.lib::L2CValue.operator___lib::L2CValueconst__const':
-            l = self.Values
-            self.Values = []
-            self.Values.append(Value(Function(bl, l, self.CurrentAddress), 'function'))
-            function = None
-            if self.CurrentBlock:
-                if self.CurrentBlock.ElseBlock:
-                    function = self.CurrentBlock.ElseBlock.Functions.pop()
-                    function.params.extend(self.Values)
-                    self.CurrentBlock.ElseBlock.Functions.append(function)
-                else:
-                    function = self.CurrentBlock.Functions.pop()
-                    function.params.extend(self.Values)
-                    self.CurrentBlock.Functions.append(function)
-                    
-            else:
-                function = self.Functions.pop()
-                function.params.extend(self.Values)
-                self.Functions.append(function)
-            self.Values = []
-            self.CurrentValue = 0
-            
-            
         elif bl == 'method.lib::L2CValue.L2CValue_long':
             self.CurrentValue = 0
-        #elif bl == 'method.app::lua_bind.WorkModule__get_int64_impl_app::BattleObjectModuleAccessor__int':
-        #    self.CurrentValue = 0
+        elif bl == 'method.app::lua_bind.WorkModule__get_int64_impl_app::BattleObjectModuleAccessor__int':
+            self.CurrentValue = 0
         elif bl == 'method.lib::L2CAgent.pop_lua_stack_int':
             #self.Values.append(Value(self.CurrentValue, 'int'))
             #self.CurrentValue = 0
@@ -478,9 +396,9 @@ class SubScript:
             #self.CurrentValue = Value(self.CurrentValue, 'long')
             None
         elif bl == 'method.lib::L2CValue._L2CValue' or bl == 'method.lib::L2CAgent.push_lua_stack_lib::L2CValueconst':
-            #Ignore
+            # Ignore
             None
-        #elif bl == 'method.app::sv_animcmd.frame_lua_State__float' or bl == 'method.app::sv_animcmd.wait_lua_State__float':
+        # elif bl == 'method.app::sv_animcmd.frame_lua_State__float' or bl == 'method.app::sv_animcmd.wait_lua_State__float':
         #    if self.CurrentBlock:
         #        self.CurrentBlock.Functions.append(Function(bl, self.PrevStack, self.CurrentAddress))
         #    else:
@@ -505,11 +423,10 @@ class SubScript:
                 else:
                     self.Functions.append(Function(bl, self.PrevStack, self.CurrentAddress))
                 self.PrevStack = []
-            self.CurrentValue = 0 #Testing
-        
+
     def parse_b_le(self, b_le):
         None
-    
+
     def parse_b_gt(self, b_gt):
         None
 
@@ -524,7 +441,6 @@ class SubScript:
             op = self.Functions.pop()
         block = Block(op, int(tbz.split(',')[2].strip(), 16), self.CurrentAddress)
 
-
         if self.CurrentBlock:
             self.Blocks.append(self.CurrentBlock)
         self.CurrentBlock = block
@@ -535,24 +451,19 @@ class SubScript:
         if f == 'wzr':
             f = '0'
         v = float(f)
-        register = next((x for x in self.Registers if x.register == p), None)
-        if register:
-            register.value = v
-        else:
-            self.Registers.append(Register(p, v))
+        self.Registers.Set(p, v)
         self.CurrentValue = v
 
     def parse_ldr(self, ldr):
         p = ldr.split(',')[0].strip()
-        r = ldr.split(',')[1].replace('[','').strip()
+        r = ldr.split(',')[1].replace('[', '').strip()
         if 'arg_' in r or 'local_' in r:
             return None
         if 'w' in p:
-            #Constant enum
-            v = ldr.split(',')[2].replace(']','')
+            # Constant enum
+            v = ldr.split(',')[2].replace(']', '')
             if v[0] == 'x':
-                register = next((x for x in self.Registers if x.register == v.replace('x','w')), None)
-                v = register.value
+                v = self.Registers.Get(v)
             else:
                 v = int(v, 16)
             constant = next((x for x in Constants if x.index == int(v / 4) + 1), None)
@@ -560,29 +471,32 @@ class SubScript:
                 if constant.name != '':
                     self.CurrentValue = constant.name
                 else:
-                    self.CurrentValue = constant.hash #v
+                    self.CurrentValue = v
             else:
                 self.CurrentValue = v
             self.isConstant = True
         else:
-            #Float/Integer value
+            # Float/Integer value
             format = 'f'
             if 'x' in p:
                 format = 'i'
             v = 0
             pr = ''
             if len(ldr.split(',')) < 3:
-                pr = r.replace(']','')
+                pr = r.replace(']', '')
             else:
-                pr = ldr.split(',')[2].replace(']','').strip()
+                pr = ldr.split(',')[2].replace(']', '').strip()
 
             if pr == 'sp':
+                #v
+                #self.Registers.Set(pr, v)
                 return None
+                
 
-            if '::' in pr: #Symbol
-                #Look in section table
+            if '::' in pr:  # Symbol
+                # Look in section table
                 try:
-                    f = pr.split(':')[2].replace('_phx','').replace('_lib','').replace('_void','')
+                    f = pr.split(':')[2].replace('_phx', '').replace('_lib', '').replace('_void', '')
                     find = next((x for x in self.Sections if '::' in x.function and x.function.split(':')[2].split('(')[0] == f), None)
                     if find:
                         v = find.num + self.CurrentValue
@@ -591,61 +505,53 @@ class SubScript:
                             v = float(v.split('=')[1].strip())
                         else:
                             v = ctypes.c_int32(int(v.split('=')[1].strip())).value
-                        register2 = next((x for x in self.Registers if x.register == p or x.register == p.replace('x', 'w')), None)
-                        if register2:
-                            register2.value = v
-                        else:
-                            self.Registers.append(Register(p, v))
+                        register2 = self.Registers.Set(p, v)
                         self.CurrentValue = v
                         return None
                 except:
                     return None
             else:
                 if pr[0] == 'x':
-                    rn = next((x for x in self.Registers if x.register == pr), None)
+                    rn = self.Registers.Get(pr)
                     if rn:
-                        v = rn.value
+                        v = rn
                 else:
-                    v = ctypes.c_int32(int(pr.replace('!','').strip(), 16)).value
-            register = next((x for x in self.Registers if x.register == r), None)
+                    v = ctypes.c_int32(int(pr.replace('!', '').strip(), 16)).value
+            register = self.Registers.Get(r)
             if register:
-                register.value += v
+                register += v
+                self.Registers.SetAdd(r,v)
                 if self.r2:
-                    v = adjustr2Output(self.r2.cmd('s {0};pf {1}'.format(register.value, format)))
+                    v = adjustr2Output(self.r2.cmd('s {0};pf {1}'.format(register, format)))
                     if format == 'f':
                         v = float(v.split('=')[1].strip())
                     else:
                         v = ctypes.c_int32(int(v.split('=')[1].strip())).value
-                    register2 = next((x for x in self.Registers if x.register == p or x.register == p.replace('x', 'w')), None)
-                    if register2:
-                        register2.value = v
-                    else:
-                        self.Registers.append(Register(p, v))
+                    self.Registers.Set(p, v)
                     self.CurrentValue = v
             else:
-                register = next((x for x in self.Registers if x.register == r.replace('x','w')), None)
+                register = self.Registers.Get(r)
                 if register:
-                    register.value += v
+                    self.Registers.SetAdd(r,v)
+                    register += v
                     if self.r2:
-                        v = adjustr2Output(self.r2.cmd('s {0};pf {1}'.format(register.value, format)))
+                        v = adjustr2Output(self.r2.cmd('s {0};pf {1}'.format(register, format)))
                         if format == 'f':
                             v = float(v.split('=')[1].strip())
                         else:
-                            v = ctypes.c_int32(int(v.split('=')[1].strip())).value
-                        register2 = next((x for x in self.Registers if x.register == p or x.register == p.replace('x', 'w')), None)
-                        if register2:
-                            register2.value = v
-                        else:
-                            self.Registers.append(Register(p, v))
+                            v = ctypes.c_int32(
+                                int(v.split('=')[1].strip())).value
+                        self.Registers.Set(p, v)
                         self.CurrentValue = v
                 else:
-                    self.Registers.append(Register(p, v))
                     if self.r2:
                         v = adjustr2Output(self.r2.cmd('s {0};pf {1}'.format(v, format)))
                         if format == 'f':
                             self.CurrentValue = float(v.split('=')[1].strip())
+                            self.Registers.Set(p, self.CurrentValue)
                         else:
                             self.CurrentValue = ctypes.c_int32(int(v.split('=')[1].strip())).value
+                            self.Registers.Set(p, self.CurrentValue)
 
     def parse_orr(self, orr):
         p = orr.split(',')[0]
@@ -654,15 +560,11 @@ class SubScript:
         if v == 'wzr':
             v = 0
         else:
-            r = next((x for x in self.Registers if x.register == v),None)
+            r = self.Registers.Get(v)
             if r:
-                v = r.value
+                v = r
         v = v | o
-        register = next((x for x in self.Registers if x.register == p), None)
-        if register:
-            register.value = v
-        else:
-            self.Registers.append(Register(p, v))
+        self.Registers.Set(p, v)
         self.CurrentValue = v
 
     def parse_and(self, andd):
@@ -672,22 +574,18 @@ class SubScript:
         if v == 'wzr':
             v = 0
         else:
-            r = next((x for x in self.Registers if x.register == v),None)
+            r = self.Registers.Get(v)
             if r:
-                v = r.value
+                v = r
             else:
                 v = 0
         v = v & o
-        register = next((x for x in self.Registers if x.register == p), None)
-        if register:
-            register.value = v
-        else:
-            self.Registers.append(Register(p, v))
+        self.Registers.Set(p, v)
         self.CurrentValue = v
 
     def Parse(self):
         for line, address in zip(self.lines, self.address):
-            #print(line)
+            # print(line)
             t = line.split(' ')
             op = t[0]
             val = ''.join(t[1:])
@@ -712,7 +610,7 @@ class SubScript:
                 branch = self.CurrentBlock.branch
                 if self.CurrentBlock.ElseBlock:
                     branch = self.CurrentBlock.ElseBlock.branch
-                if int(address,16) == branch:
+                if int(address, 16) == branch:
                     if len(self.Blocks) == 0:
                         self.Functions.append(self.CurrentBlock)
                         self.CurrentBlock = None
@@ -727,12 +625,11 @@ class SubScript:
                             branch = self.CurrentBlock.branch
                             if self.CurrentBlock.ElseBlock:
                                 branch = self.CurrentBlock.ElseBlock.branch
-                            if int(address,16) < branch:
+                            if int(address, 16) < branch:
                                 break
                         if len(self.Blocks) == 0:
                             self.Functions.append(self.CurrentBlock)
                             self.CurrentBlock = None
-                        
 
             if op == 'movz':
                 self.parse_movz(val)
@@ -774,21 +671,20 @@ class SubScript:
                 self.parse_b_lo(val)
             elif op == 'br':
                 self.parse_br(val)
-    
-    def print(self,depth):
+
+    def print(self, depth):
         s = ''
         for fun_blk in self.Functions:
-            s += fun_blk.print(0) 
+            s += fun_blk.print(0)
         return s
 
 
 class Parser:
-    def __init__(self, r2, script, scriptName, sectionList = []):
+    def __init__(self, r2, script, scriptName, sectionList=[]):
         self.scriptName = scriptName
-        #print(self.scriptName)
+        # print(self.scriptName)
         self.main = SubScript(r2, script, sectionList)
         self.main.Parse()
 
-    
     def Output(self):
         return self.main.print(0)
