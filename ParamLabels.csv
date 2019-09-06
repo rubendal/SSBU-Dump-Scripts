@@ -4950,6 +4950,12 @@
 0x1537b0b1f0,collision_attr_search
 0x14604c88a3,collision_attr_sting
 0x1468dc84cd,collision_attr_water
+0x155fb26059,collision_attr_bury_r
+0x1b2fb009bf,collision_attr_curse_poison
+0x1a5242290d,collision_attr_cutup_metal
+0x184e3f7a79,collision_attr_elec_whip
+0x18bef6339f,collision_attr_deathball
+0x1710166637,collision_attr_sleep_ex
 0x1bde8ff304,collision_category_mask_all
 0x1362c93092,collision_end_frame
 0x1307ae3e65,collision_part_body
