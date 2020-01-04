@@ -1,5 +1,5 @@
 # SSBU-Dump-Scripts
-Script to dump and parse character game animcmd scripts programatically using r2pipe (3.0.0 - 5.0.0 only)
+Script to dump and parse character game animcmd scripts programatically using r2pipe (3.0.0 - 6.0.0 only)
 
 ## Requirements
 * Python 3
