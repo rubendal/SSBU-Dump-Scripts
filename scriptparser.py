@@ -62,10 +62,12 @@ class ElseBlock:
         self.address = address
 
     def print(self,depth):
-        s = ('\t' * depth) + 'else{\n'
-        for function in self.Functions:
-            s += '{0}'.format(function.print(depth+1))
-        s+= ('\t' * depth) + '}\n'
+        s=''
+        if(len(self.Functions)>0):
+            s = ('\t' * depth) + 'else{\n'
+            for function in self.Functions:
+                s += '{0}'.format(function.print(depth+1))
+            s+= ('\t' * depth) + '}\n'
         return s
 
 class Loop:
@@ -282,12 +284,14 @@ class SubScript:
         address = int(b_lo,16)
         index = 0
         for function in self.Functions:
-            if int(function.address,16) > address:
+            if int(function.address,16) >= address:
                 break
             index += 1
+        #index = index-1
         l = self.Functions[index:]
+        
         if index > 0:
-            self.Functions = self.Functions[0:index-1]
+            self.Functions = self.Functions[0:index]
         else:
             self.Functions = []
         self.Functions.append(Loop(Value(self.CurrentValue, 'int'), l, address, self.CurrentAddress))

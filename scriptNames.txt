@@ -52,7 +52,7 @@ EscapeAirSlide
 EscapeB
 EscapeF
 EscapeFBatWitHin
-Escapen
+EscapeN
 FFlowerShoot
 FFlowerShootAerial
 FFlowerShootAir
@@ -464,7 +464,7 @@ SpecialHiStartl
 SpecialHiStartr
 SpecialLwMax
 SpecialLwStart
-SpecialNbomb
+SpecialNBomb
 SpecialNEat
 SpecialNEatFall
 SpecialNEatJump1
@@ -480,8 +480,8 @@ SpecialNLarge
 SpecialNShotObjectSpit
 SpecialNShotObjectSWallow
 SpecialNSpit
-SpecialNSWallow
-SpecialNSWallowWait
+SpecialNSwallow
+SpecialNSwallowWait
 SpecialSGet
 SpecialSMiss
 SpecialSStartSub
