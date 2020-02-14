@@ -10,13 +10,31 @@ HashList = []
 ArticleList = []
 
 namesFile = open('scriptNames.txt', 'r')
-HashList.append(NameHash40("game_".strip(), Hash40.CreateFromString("game_".lower().strip()))) #Share animation
+#Game
+HashList.append(NameHash40("game_".strip(), Hash40.CreateFromString("game_".lower().strip())))
+HashList.append(NameHash40("sound_".strip(), Hash40.CreateFromString("sound_".lower().strip())))
+HashList.append(NameHash40("effect_".strip(), Hash40.CreateFromString("effect_".lower().strip())))
+HashList.append(NameHash40("expression_".strip(), Hash40.CreateFromString("expression_".lower().strip())))
 for s in namesFile:
     if(s != "\n"):
+        sc = s
         s = "game_" + s
         HashList.append(NameHash40(s.strip(), Hash40.CreateFromString(s.lower().strip())))
         if 'Special' in s or 'Final' in s:
                 HashList.append(NameHash40(s.replace('Special','SpecialAir').replace('Final','FinalAir').strip(), Hash40.CreateFromString(s.replace('Special','SpecialAir').replace('Final','FinalAir').lower().strip())))
+        s = "sound_" + sc
+        HashList.append(NameHash40(s.strip(), Hash40.CreateFromString(s.lower().strip())))
+        if 'Special' in s or 'Final' in s:
+                HashList.append(NameHash40(s.replace('Special','SpecialAir').replace('Final','FinalAir').strip(), Hash40.CreateFromString(s.replace('Special','SpecialAir').replace('Final','FinalAir').lower().strip())))
+        s = "effect_" + sc
+        HashList.append(NameHash40(s.strip(), Hash40.CreateFromString(s.lower().strip())))
+        if 'Special' in s or 'Final' in s:
+                HashList.append(NameHash40(s.replace('Special','SpecialAir').replace('Final','FinalAir').strip(), Hash40.CreateFromString(s.replace('Special','SpecialAir').replace('Final','FinalAir').lower().strip())))
+        s = "expression_" + sc
+        HashList.append(NameHash40(s.strip(), Hash40.CreateFromString(s.lower().strip())))
+        if 'Special' in s or 'Final' in s:
+                HashList.append(NameHash40(s.replace('Special','SpecialAir').replace('Final','FinalAir').strip(), Hash40.CreateFromString(s.replace('Special','SpecialAir').replace('Final','FinalAir').lower().strip())))
+
 
 articlesFile = open('articles.txt','r')
 for s in articlesFile:

@@ -9,7 +9,7 @@ class Constant:
 
 Constants = []
 ci = 1
-cfile = open('const_value_table_6.0.0.csv', 'r')
+cfile = open('const_value_table_7.0.0.csv', 'r')
 for s in cfile:
     Constants.append(Constant(ci, s.split(',')[1].strip()))
     ci += 1
@@ -204,7 +204,17 @@ class SubScript:
         h = movz.split(',')[1]
         if h == 'wzr':
             h = '0x0'
-        v = ctypes.c_int32(int(h, 16)).value
+        if '::' in h:
+            #Look in section table
+            try:
+                f = h.split(':')[2].replace('_phx','').replace('_lib','').replace('_void','')
+                find = next((x for x in self.Sections if '::' in x.function and x.function.split(':')[2].split('(')[0] == f), None)
+                if find:
+                    v = find.num
+            except:
+                v = 0
+        else:
+            v = ctypes.c_int32(int(h, 16)).value
         register = next((x for x in self.Registers if x.register == p), None)
         if register:
             register.value = v
