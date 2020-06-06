@@ -91,7 +91,7 @@ class Function:
         self.address = address
 
     def print(self,depth):
-        functionName = self.function.split('_lua')[0].split('_impl')[0].split('_void')[0]
+        functionName = self.function.replace('Module__', 'Module::').replace('ModuleImpl__', 'ModuleImpl::').replace('Manager__', 'Manager::').split('_lua')[0].split('_impl')[0].split('_void')[0]
         if 'method.' in functionName:
             functionName = functionName.split('.')[2]
         s = ('\t' * depth) + '{0}('.format(functionName)
@@ -542,7 +542,7 @@ class SubScript:
             else:
                 pr = ldr.split(',')[2].replace(']','').strip()
 
-            if pr == 'sp':
+            if pr == 'sp' or 'sp' in pr:
                 return None
 
             if '::' in pr: #Symbol
@@ -752,7 +752,6 @@ class SubScript:
 class Parser:
     def __init__(self, r2, script, scriptName, sectionList = []):
         self.scriptName = scriptName
-        #print(self.scriptName)
         self.main = SubScript(r2, script, sectionList)
         self.main.Parse()
 
