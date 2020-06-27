@@ -107,7 +107,7 @@ class Function:
         return s
 
     def printCondition(self):
-        if self.function == 'method.lib::L2CValue.operatorbool__const':
+        if self.function in ['method.lib::L2CValue.operatorbool__const', 'method lib::L2CValue::operatorbool() const', 'methodlib::L2CValue::operatorbool()const']:
             s = ''
             for param in self.params:
                 s += '{0}, '.format(param.print(0))
@@ -132,9 +132,9 @@ class Value:
             return self.value.replace('"','')
         elif self.type == 'bool':
             if self.value == 1:
-                return 'True'
+                return 'true'
             else:
-                return 'False'
+                return 'false'
         elif self.type == 'function':
             if isinstance(self.value, Function):
                 return self.value.print(0).strip()
@@ -144,7 +144,7 @@ class Value:
                     functionName = functionName.split('.')[2]
                 return '{0}'.format(functionName)
         elif self.type == 'hash40':
-            return self.value.getLabel()
+            return 'hash40("{0}")'.format(self.value.getLabel())
         elif self.type == 'int':
             return int(self.value)
         else:
