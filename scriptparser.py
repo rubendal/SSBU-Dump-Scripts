@@ -9,7 +9,7 @@ class Constant:
 
 Constants = []
 ci = 1
-cfile = open('const_value_table_7.0.0.csv', 'r')
+cfile = open('const_value_table_8.0.0.csv', 'r')
 for s in cfile:
     Constants.append(Constant(ci, s.split(',')[1].strip()))
     ci += 1
