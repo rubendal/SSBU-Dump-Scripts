@@ -97,6 +97,11 @@ class Function:
         s = ('\t' * depth) + '{0}('.format(functionName)
         fp = next((x for x in FunctionParam if x.function == functionName and x.length == len(self.params)), None)
         index = 0
+        if functionName == 'ATTACK' and len(self.params) == 33:
+            self.params.insert(12,Value('LUA_VOID', 'intC'))
+            self.params.insert(12,Value('LUA_VOID', 'intC'))
+            self.params.insert(12,Value('LUA_VOID', 'intC'))
+            fp = next((x for x in FunctionParam if x.function == functionName and x.length == len(self.params)), None)
         for param in self.params:
             if fp:
                 s += '{0}={1}, '.format(fp.params[index], param.print(0))
