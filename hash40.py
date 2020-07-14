@@ -25,7 +25,7 @@ class Hash40:
         find = next((x for x in HashLabels if x.hash40 == self.hash40), None)
         if find:
             if find.label != '':
-                return find.label
+                return 'hash40("{0}")'.format(find.label)
         return self.hash40
 
     @staticmethod
