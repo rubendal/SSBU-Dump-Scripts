@@ -149,7 +149,7 @@ class Value:
                     functionName = functionName.split('.')[2]
                 return '{0}'.format(functionName)
         elif self.type == 'hash40':
-            return 'hash40("{0}")'.format(self.value.getLabel())
+            return self.value.getLabel()
         elif self.type == 'int':
             return int(self.value)
         else:
