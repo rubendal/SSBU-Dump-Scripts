@@ -9,7 +9,7 @@ class Constant:
 
 Constants = []
 ci = 1
-cfile = open('const_value_table_8.0.0.csv', 'r')
+cfile = open('const_value_table_9.0.0.csv', 'r')
 for s in cfile:
     Constants.append(Constant(ci, s.split(',')[1].strip()))
     ci += 1
@@ -179,6 +179,7 @@ class SubScript:
         self.prevOperation = None
         self.isConstant = False
         self.CurrentValue = 0
+        self.Variables = {}
 
         self.CurrentAddress = 0
 
@@ -288,9 +289,7 @@ class SubScript:
                         self.Registers.append(Register(p, r.value))
                     self.CurrentValue = r.value
                 else:
-                    None
-                
-        
+                    None  
 
     def parse_cmp(self, cmp):
         self.CurrentValue = int(cmp.split(',')[1].strip(),16)
@@ -512,12 +511,37 @@ class SubScript:
             self.Registers.append(Register(p, v))
         self.CurrentValue = v
 
+    def parse_str(self, _str):
+        p = _str.split(',')[0].strip()
+        r = _str.split(',')[1].replace('[','').strip()
+        v = "0"
+        if len(_str.split(',')) > 2:
+            v = _str.split(',')[2].replace('!','').replace(']','').strip()
+        if r == 'sp':
+            register = next((x for x in self.Registers if x.register == p), None)
+            if register:
+                self.Variables[v] = register.value
+
     def parse_ldr(self, ldr):
         p = ldr.split(',')[0].strip()
         r = ldr.split(',')[1].replace('[','').strip()
         if 'arg_' in r or 'local_' in r:
             return None
-        if 'w' in p:
+        if 'sp' in r:
+            #Variable
+            v = "0"
+            if len(ldr.split(',')) > 2:
+                v = ldr.split(',')[2].replace('!','').replace(']','').strip()
+            register = next((x for x in self.Registers if x.register == p), None)
+            varValue = 0
+            if v in self.Variables:
+                varValue = self.Variables[v]
+            if register:
+                register.value = varValue
+            else:
+                self.Registers.append(Register(p, varValue))
+            self.CurrentValue = varValue
+        elif 'w' in p:
             #Constant enum
             v = ldr.split(',')[2].replace(']','')
             if v[0] == 'x':
@@ -555,8 +579,12 @@ class SubScript:
                 try:
                     f = pr.split(':')[2].replace('_phx','').replace('_lib','').replace('_void','')
                     find = next((x for x in self.Sections if '::' in x.function and x.function.split(':')[2].split('(')[0] == f), None)
+                    nr = next((x for x in self.Registers if x.register == 'x8'), None)
                     if find:
-                        v = find.num + self.CurrentValue
+                        if nr:
+                            v = find.num + nr.value
+                        else:
+                            v = find.num + self.CurrentValue
                         v = adjustr2Output(self.r2.cmd('s {0};pf {1}'.format(hex(v), format)))
                         if format == 'f':
                             v = float(v.split('=')[1].strip())
@@ -736,6 +764,8 @@ class SubScript:
                 self.parse_b(val)
             elif op == 'tbz':
                 self.parse_tbz(val)
+            #elif op == 'tbnz':
+            #    self.parse_tbz(val)
             elif op == 'fmov':
                 self.parse_fmov(val)
             elif op == 'orr':
