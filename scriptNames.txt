@@ -3203,6 +3203,9 @@ SpecialN3Turn
 SpecialN3_Default
 SpecialN3_Ex
 SpecialN3_us_en
+SpecialN1Common
+SpecialN2Common
+SpecialN3Common
 SpecialNAddHit
 SpecialNBite
 SpecialNBiteEnd

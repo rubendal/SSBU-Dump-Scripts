@@ -21,3 +21,17 @@ class ParseAnimcmdStart:
                 if "0x" in val or "fcn." in val:
                     self.address = int(val.replace("fcn.", "0x"), 16)
                     break
+
+class ParseAnimcmdStartJ:
+    def __init__(self, json):
+        self.lines = []
+        self.address = None
+        for opJson in json:
+            if "disasm" in opJson:
+                t = opJson["disasm"].split(' ')
+                op = t[0]
+                val = ''.join(t[1:])
+                if op == 'bl':
+                    if "0x" in val or "fcn." in val:
+                        self.address = int(val.replace("fcn.", "0x"), 16)
+                        break

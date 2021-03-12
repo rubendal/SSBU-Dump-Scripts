@@ -2,49 +2,30 @@ import sys, getopt, os, shutil
 import zlib
 import r2pipe
 from hash40 import Hash40
-from sectionTable import SectionTable, Section
-from parseAnimcmdList import ParseAnimcmdList
-from parseAnimcmdStart import ParseAnimcmdStart
-from scriptparser import Parser
-from util import adjustr2Output
+from sectionTable import SectionTableJ, SectionJ
+from parseAnimcmdList import ParseAnimcmdListJ
+from parseAnimcmdStart import ParseAnimcmdStartJ
+from scriptParser import Parser
 
-output = "output"
 parserOutput = "parser"
-parseScripts = False
+animcmdFile = ["game"]
 
-def dump(file):
-    global output, parseScripts, parserOutput
-    print("Opening file {0}".format(file))
-    filename = os.path.split(os.path.splitext(file)[0])[-1]
-
-    if 'common' in filename or 'item' in filename:
-        return
-
-    r2 = r2pipe.open(file)
-    sections = SectionTable(adjustr2Output(r2.cmd("is"))).sections
-    r2.cmd('e anal.bb.maxsize = 0x10000')
-    game = next((x for x in sections if "lua2cpp::create_agent_fighter_animcmd_game_" in x.function and "_share_" not in x.function), None)
+def parse(file, r2, sections, filename, f):
+    game = next((x for x in sections if "lua2cpp::create_agent_fighter_animcmd_" + f + "_" in x.function and "_share_" not in x.function), None)
     if game:
         print("{0} found".format(game.function))
 
-        af = adjustr2Output(r2.cmd('s {0};af;pdf'.format(game.getAddress())))
+        af = r2.cmdj('s {0};af;pdfj'.format(game.getAddress()))
         
-        p = ParseAnimcmdList(r2, af, sections)
+        p = ParseAnimcmdListJ(r2, af, sections)
 
         print("Scripts extracted") #, {0} articles found .format(len(p.ArticleScripts))
 
-        if not os.path.exists(output):
-            os.makedirs(output)
-        
-        if not os.path.exists("{0}/{1}".format(output, filename)):
-            os.makedirs("{0}/{1}".format(output, filename))
-
-        if parseScripts:
-            if not os.path.exists(parserOutput):
-                os.makedirs(parserOutput)
-        
-            if not os.path.exists("{0}/{1}".format(parserOutput, filename)):
-                os.makedirs("{0}/{1}".format(parserOutput, filename))
+        if not os.path.exists(parserOutput):
+            os.makedirs(parserOutput)
+    
+        if not os.path.exists("{0}/{1}".format(parserOutput, filename)):
+            os.makedirs("{0}/{1}".format(parserOutput, filename))
 
         if len(p.Issues) > 0:
             #Log missing scripts in file due to issues on parsing or radare2 output
@@ -57,47 +38,46 @@ def dump(file):
             
             print("Dumping article {0} scripts, count: {1}".format(article.findHashValue(), len(article.scriptsHash)))
 
-            if not os.path.exists("{0}/{1}/{2}".format(output, filename, article.findHashValue())):
-                os.makedirs("{0}/{1}/{2}".format(output, filename, article.findHashValue()))
-
-            if parseScripts:
-                if not os.path.exists("{0}/{1}/{2}".format(parserOutput, filename, article.findHashValue())):
-                    os.makedirs("{0}/{1}/{2}".format(parserOutput, filename, article.findHashValue()))
+            if not os.path.exists("{0}/{1}/{2}".format(parserOutput, filename, article.findHashValue())):
+                os.makedirs("{0}/{1}/{2}".format(parserOutput, filename, article.findHashValue()))
             
             for hash in article.scriptsHash:
-                scriptStart = adjustr2Output(r2.cmd('s {0};pd 20'.format(hash.getAddress())))
-                scriptAddress = ParseAnimcmdStart(scriptStart).address
+                scriptStart = r2.cmdj('s {0};pdj 20'.format(hash.getAddress()))
+                scriptAddress = ParseAnimcmdStartJ(scriptStart).address
 
                 if scriptAddress:
-                    script = adjustr2Output(r2.cmd('s {0};aF;pdf'.format(hex(scriptAddress))))
+                    script = r2.cmdj('s {0};aF;pdfj'.format(hex(scriptAddress)))
 
-                    if parseScripts:
-                        try:
-                            parser = Parser(r2, script, hash.findHashValue(), sections)
-                            pf = open('{0}/{1}/{2}/{3}.txt'.format(parserOutput, filename, article.findHashValue(), hash.findHashValue()),'w')
-                            pf.write(parser.Output())
-                            pf.close()
-                        except:
-                            print("Couldn't parse {0}".format(hash.findHashValue()))
+                    try:
+                        #print(hash.findHashValue())
+                        parser = Parser(r2, script, hex(scriptAddress), hash.findHashValue(), sections)
+                        pf = open('{0}/{1}/{2}/{3}.txt'.format(parserOutput, filename, article.findHashValue(), hash.findHashValue()),'w')
+                        pf.write(parser.Output())
+                        pf.close()
+                    except:
+                        print("Couldn't parse {0}".format(hash.findHashValue()))
 
-                    #script = script.replace('\r', '')
-                    #exists = os.path.exists("{0}/{1}/{2}/{3}.txt".format(output, filename, article.findHashValue(), hash.findHashValue()))
-                    #if not exists:
-                    #f = open("{0}/{1}/{2}/{3}.txt".format(output, filename, article.findHashValue(), hash.findHashValue()), "w")
-                    #f.write(script)
-                    #f.close()
-                    #else:
-                    #    v = 2
-                    #    while exists:
-                    #        exists = os.path.exists("{0}/{1}/{2}/{3} ({4}).txt".format(output, filename, article.findHashValue(), hash.findHashValue(), v))
-                    #        if not exists:
-                    #            f = open("{0}/{1}/{2}/{3} ({4}).txt".format(output, filename, article.findHashValue(), hash.findHashValue(), v), "w")
-                    #            f.write(script)
-                    #            f.close()
-                    #        v += 1
 
     else:
         print('animcmd_game not found on file {0}'.format(file))
+
+def dump(file):
+    global parserOutput, animcmdFile
+    print("Opening file {0}".format(file))
+    filename = os.path.split(os.path.splitext(file)[0])[-1]
+
+    if 'common' in filename or 'item' in filename:
+        return
+
+    r2 = r2pipe.open(file)
+    r2.cmd('e anal.vars = false')
+    r2.cmd('e anal.bb.maxsize = 0x10000')
+    r2.cmd('e anal.depth = 128')
+    sections = SectionTableJ(r2.cmdj("isj")).sections
+    
+    
+    for f in animcmdFile:
+        parse(file, r2, sections, filename, f)
     
     r2.quit()
 
@@ -105,22 +85,43 @@ def Parse(file):
     script = open(file, 'r')
     t = script.read()
     t = t.replace('\n','\n\r')
-    p = Parser(None, t)
+    #p = Parser(None, t)
 
 def start(path, argv):
-    global output, parseScripts
+    global parserOutput, animcmdFile
+
+    t = []
+    scriptSpecified = False
+
     try:
-      opts, args = getopt.getopt(argv,"o:p",["output="])
+      opts, args = getopt.getopt(argv,"o:gexs",["output=","game","effect","expression","sound"])
     except getopt.GetoptError:
-        print('main.py path')
+        print('main.py path [-g|-e|-x|-s]')
         print("file path: dump scripts from elf file")
         print("directory path: dump all scripts from elf files found on directory")
+        print("-g: Dump game scripts (default when no type is specified)")
+        print("-e: Dump effect scripts")
+        print("-x: Dump expression scripts")
+        print("-s: Dump sound scripts")
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-o':
-            output = arg
-        if opt == '-p':
-            parseScripts = True
+            parserOutput = arg
+        if opt == '-e':
+            t.append("effect")
+            scriptSpecified = True
+        if opt == '-x':
+            t.append("expression")
+            scriptSpecified = True
+        if opt == '-s':
+            t.append("sound")
+            scriptSpecified = True
+        if opt == '-g':
+            t.append("game")
+            scriptSpecified = True
+        
+    if scriptSpecified:
+        animcmdFile = t
 
     run = False
 
@@ -131,7 +132,7 @@ def start(path, argv):
                 dump(os.path.join(path,file))
     elif os.path.isfile(path):
         ext = os.path.splitext(path)
-        if os.path.splitext(path)[1] == ".elf":
+        if ext[1] == ".elf":
             run = True
             dump(path)
 
