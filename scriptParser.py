@@ -1,6 +1,24 @@
 import re, ctypes
 from hash40 import Hash40
 from util import adjustr2Output, UseOpcode
+import math
+from hitboxes import Hitbox, Grab, Throw 
+
+#Hitboxes
+currentFrame = 0.0
+fsm = 1.0
+animcmdFrame = 0.0
+
+def processToFrame(frame):
+    global currentFrame, fsm, animcmdFrame
+    frames = frame - animcmdFrame
+    currentFrame += (fsm * frames)
+    animcmdFrame = frame
+
+def processFrames(frames):
+    global currentFrame, fsm, animcmdFrame
+    currentFrame += (fsm * frames)
+    animcmdFrame += frames
 
 class Constant:
     def __init__(self, index, name):
@@ -55,6 +73,16 @@ class Block:
             s+= ('\t' * depth) + '}\n'
         return s
 
+    def printAttacks(self,depth,hitboxes,grabs,throws):
+        if isinstance(self.condition, Function):
+            for function in self.Functions:
+                function.printAttacks(depth+1,hitboxes,grabs,throws)
+            if self.ElseBlock:
+                self.ElseBlock.printAttacks(depth, hitboxes,grabs,throws)
+        else:
+            for function in self.Functions:
+                function.printAttacks(depth+1, hitboxes,grabs,throws)
+
 class ElseBlock:
     def __init__(self, branch, address = 0):
         self.Functions = []
@@ -70,6 +98,11 @@ class ElseBlock:
             s+= ('\t' * depth) + '}\n'
         return s
 
+    def printAttacks(self,depth,hitboxes,grabs,throws):
+        if(len(self.Functions)>0):
+            for function in self.Functions:
+                function.printAttacks(depth,hitboxes,grabs,throws)
+
 class Loop:
     def __init__(self, iterator, functions, branch, address = 0):
         self.iterator = iterator
@@ -83,6 +116,11 @@ class Loop:
             s += '{0}'.format(function.print(depth + 1))
         s+= ('\t' * depth) + '}\n'
         return s
+
+    def printAttacks(self,depth,hitboxes,grabs,throws):
+        for i in range(int(self.iterator.getIterator())):
+            for function in self.Functions:
+                function.printAttacks(depth+1, hitboxes,grabs,throws)
 
 class Function:
     def __init__(self, function, params, address = 0):
@@ -112,6 +150,121 @@ class Function:
             index += 1
         s = s.strip(', ') + ')\n'
         return s
+
+    def printAttacks(self,depth,hitboxes,grabs,throws):
+        global currentFrame, fsm, animcmdFrame
+        functionName = self.function.replace('Module__', 'Module::').replace('ModuleImpl__', 'ModuleImpl::').replace('Manager__', 'Manager::').split('_lua')[0].split('_impl')[0].split('_void')[0]
+        #if 'method.' in functionName:
+        #    functionName = functionName.split('.')[2]
+        if functionName.startswith('methodapp'):
+            functionName = ':'.join(functionName.split(':')[4:]).split('(')[0]
+        if(functionName == 'ATTACK' or functionName == 'ATTACK_IGNORE_THROW'):
+            fp = next((x for x in FunctionParam if x.function == functionName and x.length == len(self.params)), None)
+            paramList = []
+            index = 0
+            for param in self.params:
+                if fp:
+                    p = fp.params[index]
+                    paramList.append(param.print(0))
+                    if(p == 'ID'):
+                        if functionName == 'ATTACK':
+                            paramList.append('')
+                        else:
+                            paramList.append(True)
+                    if p == 'Z' and fp.length == 33:
+                        paramList.append(0)
+                        paramList.append(0)
+                        paramList.append(0)
+                index += 1
+            if len(paramList) > 0:
+                for attack in hitboxes:
+                    if attack.params[0] == self.params[0].value and attack.endFrame == 0:
+                        attack.endFrame = math.ceil(currentFrame)
+                hitboxes.append(Hitbox(paramList, currentFrame))
+        elif(functionName == 'frame'):
+            processToFrame(float(self.params[-1].value))
+        elif(functionName == 'wait'):
+            processFrames(float(self.params[-1].value))
+        elif(functionName == 'FT_MOTION_RATE'):
+            fsm = float(self.params[0].value)
+            if currentFrame == 0:
+                currentFrame = 1
+                animcmdFrame = 1
+        elif(functionName == 'AttackModule::clear_all'):
+            for attack in hitboxes:
+                if attack.endFrame == 0:
+                    attack.endFrame = math.ceil(currentFrame)
+        elif(functionName == 'AttackModule::clear'):
+            for attack in hitboxes:
+                if attack.params[0] == self.params[0].value and attack.endFrame == 0:
+                    attack.endFrame = math.ceil(currentFrame)
+        elif(functionName == 'ATK_SET_SHIELD_SETOFF_MUL'):
+            for attack in hitboxes:
+                if attack.params[0] == self.params[0].value and attack.endFrame == 0:
+                    attack.shieldStunMult = float(self.params[1].value)
+        elif(functionName == 'AttackModule::set_add_reaction_frame'):
+            for attack in hitboxes:
+                if attack.params[0] == self.params[0].value and attack.endFrame == 0:
+                    attack.addHitstun = int(self.params[1].value)
+        elif(functionName == 'ATK_SET_SHIELD_SETOFF_MUL_arg3'):
+            for attack in hitboxes:
+                if (attack.params[0] == self.params[0].value or attack.params[0] == self.params[1].value) and attack.endFrame == 0:
+                    attack.shieldStunMult = float(self.params[-1].value)
+        elif(functionName == 'ATK_SET_SHIELD_SETOFF_MUL_arg4'):
+            for attack in hitboxes:
+                if (attack.params[0] == self.params[0].value or attack.params[0] == self.params[1].value or attack.params[0] == self.params[2].value) and attack.endFrame == 0:
+                    attack.shieldStunMult = float(self.params[-1].value)
+        elif(functionName == 'ATK_SET_SHIELD_SETOFF_MUL_arg5'):
+            for attack in hitboxes:
+                if (attack.params[0] == self.params[0].value or attack.params[0] == self.params[1].value or attack.params[0] == self.params[2].value or attack.params[0] == self.params[3].value) and attack.endFrame == 0:
+                    attack.shieldStunMult = float(self.params[-1].value)
+        #Grabs
+        elif(functionName == 'CATCH'):
+            fp = next((x for x in FunctionParam if x.function == functionName and x.length == len(self.params)), None)
+            paramList = []
+            index = 0
+            for param in self.params:
+                if fp:
+                    p = fp.params[index]
+                    paramList.append(param.print(0))
+                    if p == 'Z' and fp.length == 8:
+                        paramList.append(0)
+                        paramList.append(0)
+                        paramList.append(0)
+                index += 1
+            if len(paramList) > 0:
+                for grab in grabs:
+                    if grab.params[0] == self.params[0].value and grab.endFrame == 0:
+                        grab.endFrame = math.ceil(currentFrame)
+                grabs.append(Grab(paramList, currentFrame))
+        elif(functionName == 'grab'):
+            if(self.params[0].value == 'MA_MSC_CMD_GRAB_CLEAR_ALL'): #Clear all
+                for grab in grabs:
+                    if grab.endFrame == 0:
+                        grab.endFrame = math.ceil(currentFrame)
+            else:
+                for grab in grabs:
+                    if grab.params[0] == self.params[1].value and grab.endFrame == 0: #Clear specific id
+                        grab.endFrame = math.ceil(currentFrame)
+        #Throws
+        elif(functionName == 'ATTACK_ABS'):
+            fp = next((x for x in FunctionParam if x.function == functionName and x.length == len(self.params)), None)
+            paramList = []
+            index = 0
+            for param in self.params:
+                if fp:
+                    p = fp.params[index]
+                    paramList.append(param.print(0))
+                index += 1
+            if len(paramList) > 0:
+                for throw in throws:
+                    if throw.params[0] == self.params[0].value and throw.params[1] == self.params[1].value and throw.endFrame == 0:
+                        throw.endFrame = math.ceil(currentFrame)
+                throws.append(Throw(paramList, currentFrame))
+        elif(functionName == 'ATK_HIT_ABS'):
+            for throw in throws:
+                if throw.params[0] == self.params[0].value and throw.endFrame == 0:
+                    throw.endFrame = math.ceil(currentFrame)
 
     def printCondition(self):
         if self.function in ['method.lib::L2CValue.operatorbool__const', 'method lib::L2CValue::operatorbool() const', 'methodlib::L2CValue::operatorbool()const']:
@@ -161,6 +314,9 @@ class Value:
 
     def iteratorPrint(self):
         return str(self.value - 1)
+    
+    def getIterator(self):
+        return self.value - 1
 
 class SubScript:
     def __init__(self, r2, script, sectionList = []):
@@ -425,9 +581,9 @@ class SubScript:
             l = self.Values
             self.Values = []
             self.Values.append(Value(Function(bl, l, self.CurrentAddress), 'function'))
-        elif bl in ['method.lib::L2CValue.L2CValue_long', 'method lib::L2CValue::L2CValue(long)']:
+        elif bl in ['method.lib::L2CValue.L2CValue_long', 'method lib::L2CValue::L2CValue(long)', 'methodlib::L2CValue::L2CValue(long)']:
             self.CurrentValue = 0
-        elif bl in ['method.app::lua_bind.WorkModule__get_int64_impl_app::BattleObjectModuleAccessor__int', 'method app::lua_bind.WorkModule__get_int64_impl_app::BattleObjectModuleAccessor(int)','methodapp::lua_bind.WorkModule__get_int64_impl_app::BattleObjectModuleAccessor(int)']:
+        elif bl in ['method.app::lua_bind.WorkModule__get_int64_impl_app::BattleObjectModuleAccessor__int', 'method app::lua_bind.WorkModule__get_int64_impl_app::BattleObjectModuleAccessor(int)','methodapp::lua_bind.WorkModule__get_int64_impl_app::BattleObjectModuleAccessor(int)','methodapp::lua_bind::WorkModule__get_int64_impl(app::BattleObjectModuleAccessor*,int)']:
             self.CurrentValue = 0
         elif bl in ['method.lib::L2CAgent.pop_lua_stack_int', 'method lib::L2CAgent::pop_lua_stack(int)', 'methodlib::L2CAgent::pop_lua_stack(int)']:
             #self.Values.append(Value(self.CurrentValue, 'int'))
@@ -750,14 +906,40 @@ class SubScript:
             s += fun_blk.print(0) 
         return s
 
+    def printAttacks(self,depth,hitboxes,grabs,throws):
+        s = ''
+        for fun_blk in self.Functions:
+            fun_blk.printAttacks(0, hitboxes,grabs,throws) 
+        return s
+
 
 class Parser:
     def __init__(self, r2, script, address, scriptName, sectionList = []):
         self.scriptName = scriptName
         print(self.scriptName + ' - ' + address)
+
+        self.hitboxes = []
+        self.grabs = []
+        self.throws = []
+
         self.main = SubScript(r2, script, sectionList)
         self.main.Parse()
 
     
     def Output(self):
         return self.main.print(0)
+
+    def GetHitboxes(self):
+        global currentFrame, fsm, animcmdFrame
+
+        currentFrame = 0.0
+        fsm = 1.0
+        animcmdFrame = 0.0
+
+        self.main.printAttacks(0, self.hitboxes, self.grabs, self.throws)
+
+        return {
+            'hitboxes': self.hitboxes,
+            'grabs': self.grabs,
+            'throws': self.throws
+        }

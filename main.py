@@ -8,14 +8,23 @@ from parseAnimcmdStart import ParseAnimcmdStartJ
 from scriptParser import Parser
 
 parserOutput = "parser"
+hitboxOutput = "hitboxes"
 animcmdFile = ["game"]
+dumpHitboxes = False
 
-def parse(file, r2, sections, filename, f):
-    game = next((x for x in sections if "lua2cpp::create_agent_fighter_animcmd_" + f + "_" in x.function and "_share_" not in x.function), None)
-    if game:
-        print("{0} found".format(game.function))
+def parse(file, r2, sections, filename, f, dumpHitboxes):
+    if f != 'game':
+        dumpHitboxes = False
 
-        af = r2.cmdj('s {0};af;pdfj'.format(game.getAddress()))
+    hitboxes = ''
+    grabs = ''
+    throws = ''
+
+    animcmdfile = next((x for x in sections if "lua2cpp::create_agent_fighter_animcmd_" + f + "_" in x.function and "_share_" not in x.function), None)
+    if animcmdfile:
+        print("{0} found".format(animcmdfile.function))
+
+        af = r2.cmdj('s {0};af;pdfj'.format(animcmdfile.getAddress()))
         
         p = ParseAnimcmdListJ(r2, af, sections)
 
@@ -49,20 +58,54 @@ def parse(file, r2, sections, filename, f):
                     script = r2.cmdj('s {0};aF;pdfj'.format(hex(scriptAddress)))
 
                     try:
-                        #print(hash.findHashValue())
                         parser = Parser(r2, script, hex(scriptAddress), hash.findHashValue(), sections)
                         pf = open('{0}/{1}/{2}/{3}.txt'.format(parserOutput, filename, article.findHashValue(), hash.findHashValue()),'w')
                         pf.write(parser.Output())
                         pf.close()
+
+                        if dumpHitboxes:
+                            #Hitbox dump
+                            if not os.path.exists(hitboxOutput):
+                                os.makedirs(hitboxOutput)
+                        
+                            if not os.path.exists("{0}/{1}".format(hitboxOutput, filename)):
+                                os.makedirs("{0}/{1}".format(hitboxOutput, filename))
+
+                            data = parser.GetHitboxes()
+
+                            if(data):
+
+                                for hitbox in data['hitboxes']:
+                                    if('Genesis' not in hash.findHashValue()):
+                                        hitboxes += (hitbox.print(article.findHashValue(), hash.findHashValue())) + '\n'
+                                
+                                for grab in data['grabs']:
+                                    grabs += (grab.print(article.findHashValue(), hash.findHashValue())) + '\n'
+
+                                for t in data['throws']:
+                                    throws += (t.print(article.findHashValue(), hash.findHashValue())) + '\n'
+
                     except:
                         print("Couldn't parse {0}".format(hash.findHashValue()))
+        
+        if dumpHitboxes:
+            pf = open('{0}/{1}/{2}.csv'.format(hitboxOutput, filename, 'hitboxes'),'w')
+            pf.write(hitboxes)
+            pf.close()
 
+            pf = open('{0}/{1}/{2}.csv'.format(hitboxOutput, filename, 'grabs'),'w')
+            pf.write(grabs)
+            pf.close()
+
+            pf = open('{0}/{1}/{2}.csv'.format(hitboxOutput, filename, 'throws'),'w')
+            pf.write(throws)
+            pf.close()
 
     else:
         print('animcmd_game not found on file {0}'.format(file))
 
 def dump(file):
-    global parserOutput, animcmdFile
+    global parserOutput, animcmdFile, dumpHitboxes
     print("Opening file {0}".format(file))
     filename = os.path.split(os.path.splitext(file)[0])[-1]
 
@@ -77,7 +120,7 @@ def dump(file):
     
     
     for f in animcmdFile:
-        parse(file, r2, sections, filename, f)
+        parse(file, r2, sections, filename, f, dumpHitboxes)
     
     r2.quit()
 
@@ -88,14 +131,14 @@ def Parse(file):
     #p = Parser(None, t)
 
 def start(path, argv):
-    global parserOutput, animcmdFile
+    global parserOutput, animcmdFile, dumpHitboxes
 
-    t = []
     scriptSpecified = False
 
     try:
-      opts, args = getopt.getopt(argv,"o:gexs",["output=","game","effect","expression","sound"])
+      opts, args = getopt.getopt(argv,"o:gexsh",["output=","game","effect","expression","sound","hitboxDump"])
     except getopt.GetoptError:
+        print(getopt.GetoptError.msg)
         print('main.py path [-g|-e|-x|-s]')
         print("file path: dump scripts from elf file")
         print("directory path: dump all scripts from elf files found on directory")
@@ -103,25 +146,30 @@ def start(path, argv):
         print("-e: Dump effect scripts")
         print("-x: Dump expression scripts")
         print("-s: Dump sound scripts")
+        print("-h: Dump hitboxes on csv file")
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-o':
             parserOutput = arg
         if opt == '-e':
-            t.append("effect")
+            animcmdFile.append("effect")
             scriptSpecified = True
         if opt == '-x':
-            t.append("expression")
+            animcmdFile.append("expression")
             scriptSpecified = True
         if opt == '-s':
-            t.append("sound")
+            animcmdFile.append("sound")
             scriptSpecified = True
         if opt == '-g':
-            t.append("game")
+            animcmdFile.append("game")
             scriptSpecified = True
+        if opt == '-h':
+            dumpHitboxes = True
         
-    if scriptSpecified:
-        animcmdFile = t
+    if not scriptSpecified:
+        animcmdFile = ["game"]
+    else:
+        animcmdFile.pop(0)
 
     run = False
 
