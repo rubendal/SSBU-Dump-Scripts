@@ -265,6 +265,8 @@ class Function:
             for throw in throws:
                 if throw.params[0] == self.params[0].value and throw.endFrame == 0:
                     throw.endFrame = math.ceil(currentFrame)
+        elif(functionName == 'FT_CATCH_STOP'):
+            processFrames(float(self.params[0].value))
 
     def printCondition(self):
         if self.function in ['method.lib::L2CValue.operatorbool__const', 'method lib::L2CValue::operatorbool() const', 'methodlib::L2CValue::operatorbool()const']:
