@@ -4,6 +4,7 @@ buddy
 captain
 chrom
 cloud
+cloud_fusionsword
 daisy
 dedede
 diddy
@@ -92,6 +93,7 @@ edge
 flame
 light
 element
+element_diver
 eflame
 elight
 demon
