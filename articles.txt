@@ -89,6 +89,8 @@ yoshi
 younglink
 zelda
 pickel
+pickel_rail
+pickel_wing
 edge
 flame
 light
@@ -97,6 +99,7 @@ element_diver
 eflame
 elight
 demon
+demon_demonp
 WEAPON_KIND_BAYONETTA
 WEAPON_KIND_BAYONETTA_BAT
 WEAPON_KIND_BAYONETTA_FINALBG
