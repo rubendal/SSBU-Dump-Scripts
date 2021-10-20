@@ -137,6 +137,8 @@ AttackAirLw_V
 AttackAirLw_W
 AttackAirLw_Y
 AttackAirN
+AttackAirN2
+AttackAirN3
 AttackAirNEnd
 AttackAirNHold
 AttackAirNStart
@@ -2760,6 +2762,7 @@ SpecialAirLwMiss
 SpecialAirLwN
 SpecialAirLwOut
 SpecialAirLwR
+SpecialAirLwRebound
 SpecialAirLwReflect
 SpecialAirLwReflector
 SpecialAirLwRise
@@ -2786,7 +2789,9 @@ SpecialAirLwWall
 SpecialAirLw_Nana
 SpecialAirN
 SpecialAirN1
+SpecialAirN12
 SpecialAirN1Cancel
+SpecialAirN1End
 SpecialAirN1Fire
 SpecialAirN1FireMax
 SpecialAirN1Hold
@@ -3304,6 +3309,7 @@ SpecialLwMin
 SpecialLwMiss
 SpecialLwOut
 SpecialLwR
+SpecialLwRebound
 SpecialLwReflect
 SpecialLwReflector
 SpecialLwReturn
@@ -3345,8 +3351,10 @@ SpecialLwWallEnd
 SpecialLw_Nana
 SpecialN
 SpecialN1
+SpecialN12
 SpecialN1Cancel
 SpecialN1Common
+SpecialN1End
 SpecialN1Fire
 SpecialN1FireMax
 SpecialN1Get
