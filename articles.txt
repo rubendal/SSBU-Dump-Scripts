@@ -4,7 +4,6 @@ buddy
 captain
 chrom
 cloud
-cloud_fusionsword
 daisy
 dedede
 diddy
@@ -89,17 +88,14 @@ yoshi
 younglink
 zelda
 pickel
-pickel_rail
-pickel_wing
 edge
 flame
 light
 element
-element_diver
 eflame
 elight
 demon
-demon_demonp
+trail
 WEAPON_KIND_BAYONETTA
 WEAPON_KIND_BAYONETTA_BAT
 WEAPON_KIND_BAYONETTA_FINALBG
@@ -1181,3 +1177,9 @@ WEAPON_KIND_DEMON_BLASTER
 WEAPON_KIND_DEMON_BLASTERCHEST
 WEAPON_KIND_DEMON_BLASTERWING
 WEAPON_KIND_DEMON_BLASTERHEAD
+WEAPON_KIND_TRAIL_FIRE
+WEAPON_KIND_TRAIL_CLOUD
+WEAPON_KIND_TRAIL_THUNDER
+WEAPON_KIND_TRAIL_ICE
+WEAPON_KIND_TRAIL_HOLE
+WEAPON_KIND_TRAIL_BEAM

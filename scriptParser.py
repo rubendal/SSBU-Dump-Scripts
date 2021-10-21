@@ -27,7 +27,7 @@ class Constant:
 
 Constants = []
 ci = 1
-cfile = open('const_value_table_12.0.0.csv', 'r')
+cfile = open('const_value_table_13.0.0.csv', 'r')
 for s in cfile:
     Constants.append(Constant(ci, s.split(',')[1].strip()))
     ci += 1
@@ -190,6 +190,11 @@ class Function:
             if currentFrame == 0:
                 currentFrame = 1
                 animcmdFrame = 1
+        elif(functionName == 'MotionModule::set_rate'):
+            fsm = 1 / float(self.params[0].value)
+            if currentFrame == 0:
+                currentFrame = 1
+                animcmdFrame = 1
         elif(functionName == 'AttackModule::clear_all'):
             for attack in hitboxes:
                 if attack.endFrame == 0:
@@ -341,6 +346,7 @@ class SubScript:
         self.prevOperation = None
         self.isConstant = False
         self.CurrentValue = 0
+        self.Variables = {}
 
         self.CurrentAddress = 0
 
@@ -361,6 +367,17 @@ class SubScript:
 
             self.lines.append(line)
             self.address.append(address)
+    
+    def parse_str(self, _str):
+        p = _str.split(',')[0].strip()
+        r = _str.split(',')[1].replace('[','').strip()
+        v = "0"
+        if len(_str.split(',')) > 2:
+            v = _str.split(',')[2].replace('!','').replace(']','').strip()
+        if r == 'sp':
+            register = next((x for x in self.Registers if x.register == p), None)
+            if register:
+                self.Variables[v] = register.value
 
     def parse_movz(self, movz):
         p = movz.split(',')[0]
@@ -672,7 +689,21 @@ class SubScript:
         r = ldr.split(',')[1].replace('[','').strip()
         if 'arg_' in r or 'local_' in r:
             return None
-        if 'w' in p:
+        if 'sp' in r:
+            #Variable
+            v = "0"
+            if len(ldr.split(',')) > 2:
+                v = ldr.split(',')[2].replace('!','').replace(']','').strip()
+            register = next((x for x in self.Registers if x.register == p), None)
+            varValue = 0
+            if v in self.Variables:
+                varValue = self.Variables[v]
+            if register:
+                register.value = varValue
+            else:
+                self.Registers.append(Register(p, varValue))
+            self.CurrentValue = varValue
+        elif 'w' in p:
             #Constant enum
             v = ldr.split(',')[2].replace(']','')
             if v[0] == 'x':
@@ -710,8 +741,13 @@ class SubScript:
                 try:
                     f = pr.split(':')[2].replace('_phx','').replace('_lib','').replace('_void','')
                     find = next((x for x in self.Sections if '::' in x.function and x.function.split(':')[2].split('(')[0] == f), None)
+                    nr = next((x for x in self.Registers if x.register == 'x8'), None)
                     if find:
-                        v = find.num + self.CurrentValue
+                        #v = find.num + self.CurrentValue
+                        if nr:
+                            v = find.num + nr.value
+                        else:
+                            v = find.num + self.CurrentValue
                         v = adjustr2Output(self.r2.cmd('s {0};pf {1}'.format(hex(v), format)))
                         if format == 'f':
                             v = round(float(v.split('=')[1].strip()),3)
@@ -873,6 +909,8 @@ class SubScript:
                 self.parse_cmp(val)
             elif op == 'adrp':
                 self.parse_adrp(val)
+            elif op == 'str':
+                self.parse_str(val)
             elif op == 'ldr':
                 self.parse_ldr(val)
             elif op == 'add':
@@ -905,7 +943,10 @@ class SubScript:
     def print(self,depth):
         s = ''
         for fun_blk in self.Functions:
-            s += fun_blk.print(0) 
+            s += fun_blk.print(0)
+        if self.CurrentBlock:
+            for fun_blk in self.CurrentBlock.Functions:
+                s += fun_blk.print(0)
         return s
 
     def printAttacks(self,depth,hitboxes,grabs,throws):
@@ -918,7 +959,7 @@ class SubScript:
 class Parser:
     def __init__(self, r2, script, address, scriptName, sectionList = []):
         self.scriptName = scriptName
-        print(self.scriptName + ' - ' + address)
+        #print(self.scriptName + ' - ' + address)
 
         self.hitboxes = []
         self.grabs = []
