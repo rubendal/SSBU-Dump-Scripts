@@ -3,6 +3,7 @@ wait,1,Frames
 ATTACK,33,ID|Part|Bone|Damage|Angle|KBG|FKB|BKB|Size|X|Y|Z|Hitlag|SDI|Clang_Rebound|FacingRestrict|SetWeight|ShieldDamage|Trip|Rehit|Reflectable|Absorbable|Flinchless|DisableHitlag|Direct_Hitbox|Ground_or_Air|Hitbits|CollisionPart|FriendlyFire|Effect|SFXLevel|SFXType|Type
 ATTACK,36,ID|Part|Bone|Damage|Angle|KBG|FKB|BKB|Size|X|Y|Z|X2|Y2|Z2|Hitlag|SDI|Clang_Rebound|FacingRestrict|SetWeight|ShieldDamage|Trip|Rehit|Reflectable|Absorbable|Flinchless|DisableHitlag|Direct_Hitbox|Ground_or_Air|Hitbits|CollisionPart|FriendlyFire|Effect|SFXLevel|SFXType|Type
 AttackModule::set_add_reaction_frame,3,ID|Frames|Unk
+AttackModule::set_add_reaction_frame_revised,3,ID|Frames|Unk
 ATK_SET_SHIELD_SETOFF_MUL,2,ID|ShieldstunMul
 ATTACK_ABS,16,Kind|ID|Damage|Angle|KBG|FKB|BKB|Hitlag|Unk|FacingRestrict|Unk|Unk|Effect|SFXLevel|SFXType|Type
 WorkModule::on_flag,1,Flag
@@ -17,11 +18,15 @@ FighterCutInManager__set_throw_finish_zoom_rate,1,ZoomRate
 ATK_SET_SHIELD_SETOFF_MUL_arg3,3,ID1|ID2|ShieldstunMul
 ATK_SET_SHIELD_SETOFF_MUL_arg4,4,ID1|ID2|ID3|ShieldstunMul
 ATK_SET_SHIELD_SETOFF_MUL_arg5,5,ID1|ID2|ID3|ID4|ShieldstunMul
+ATK_SET_SHIELD_SETOFF_MUL2,2,ID|ShieldstunMul
 SA_SET,1,State
 FT_ADD_DAMAGE,1,SelfDamage
 FT_MOTION_RATE,1,FSM
+MotionModule::set_rate,1,FSR
 AttackModule::set_ink_value,2,ID|Ink
 AttackModule::set_target_category,2,ID|Hitbits
 AttackModule::set_size,2,ID|Size
 ATTACK_IGNORE_THROW,33,ID|Part|Bone|Damage|Angle|KBG|FKB|BKB|Size|X|Y|Z|Hitlag|SDI|Clang_Rebound|FacingRestrict|SetWeight|ShieldDamage|Trip|Rehit|Reflectable|Absorbable|Flinchless|DisableHitlag|Direct_Hitbox|Ground_or_Air|Hitbits|CollisionPart|FriendlyFire|Effect|SFXLevel|SFXType|Type
 ATTACK_IGNORE_THROW,36,ID|Part|Bone|Damage|Angle|KBG|FKB|BKB|Size|X|Y|Z|X2|Y2|Z2|Hitlag|SDI|Clang_Rebound|FacingRestrict|SetWeight|ShieldDamage|Trip|Rehit|Reflectable|Absorbable|Flinchless|DisableHitlag|Direct_Hitbox|Ground_or_Air|Hitbits|CollisionPart|FriendlyFire|Effect|SFXLevel|SFXType|Type
+damage,3,MSC|Type|DamageThreshold
+shield,4,MSC|Type|ID|Group
